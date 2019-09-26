@@ -1,1 +1,1 @@
-DOMAIN='shittynest'
+DOMAIN='badnest'
