@@ -33,7 +33,7 @@ class NestAPI():
         self._login(email, password)
         self.update()
 
-    def _login(self, email = 'jacob.a.mcswain@gmail.com', password = 'ttlshiwwyaJ@'):
+    def _login(self, email, password):
         r = requests.post(f'{API_URL}/session', json={
             'email': email,
             'password': password
