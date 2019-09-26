@@ -9,6 +9,7 @@ A shitty Nest thermostats integration that uses the web api to work after Works 
 - Will only work the for thermostat, I have no other devices to test with
 - Nest could change their webapp api at any time, making this defunct
 - Won't work with Google-linked accounts
+- Presets don't work (Eco, Away)
 
 ## Example configuration.yaml
 
