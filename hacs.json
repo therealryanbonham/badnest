@@ -1,0 +1,4 @@
+{
+    "name": "Shitty Nest Thermostat",
+    "domains": ["climate"]
+}
