@@ -1,7 +1,7 @@
 {
-  "domain": "shittynest",
-  "name": "Shitty Nest (A hack around the Nest component to pull from their internal api)",
-  "documentation": "https://custom-components.github.io/shittynest",
+  "domain": "badnest",
+  "name": "Bad Nest (A hack around the Nest component to pull from their internal api)",
+  "documentation": "https://custom-components.github.io/badnest",
   "dependencies": [],
   "codeowners": [
     "@USA-RedDragon"
