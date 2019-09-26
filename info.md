@@ -1,6 +1,10 @@
-# shittynest
+# badnest
 
-A shitty Nest thermostats integration that uses the web api to work after Works with Nest was shut down (fuck Google)
+A bad Nest thermostats integration that uses the web api to work after Works with Nest was shut down (fuck Google)
+
+## Why is it bad?
+
+This isn't an advertised or public API, it's still better than web scraping, but will never be as good as the original API
 
 ## Drawbacks
 
@@ -14,11 +18,11 @@ A shitty Nest thermostats integration that uses the web api to work after Works 
 ## Example configuration.yaml
 
 ```yaml
-shittynest:
+badnest:
   email: email@domain.com
   password: !secret nest_password
 
 climate:
-  - platform: shittynest
+  - platform: badnest
     scan_interval: 10
 ```
