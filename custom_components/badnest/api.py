@@ -3,32 +3,71 @@ import requests
 API_URL = "https://home.nest.com"
 CAMERA_WEBAPI_BASE = "https://webapi.camera.home.nest.com"
 CAMERA_URL = "https://nexusapi-us1.camera.home.nest.com"
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) " \
+             "AppleWebKit/537.36 (KHTML, like Gecko) " \
+             "Chrome/75.0.3770.100 Safari/537.36"
+URL_JWT = "https://nestauthproxyservice-pa.googleapis.com/v1/issue_jwt"
 
 
 class NestAPI:
-    def __init__(self, email, password):
+    def __init__(self, email, password, issue_token, cookie, api_key):
         self._user_id = None
         self._access_token = None
         self._session = requests.Session()
         self._session.headers.update({"Referer": "https://home.nest.com/"})
         self._device_id = None
-        self._login(email, password)
+        if email is not None and password is not None:
+            self._login_nest(email, password)
+        else:
+            self._login_google(issue_token, cookie, api_key)
         self.update()
 
-    def _login(self, email, password):
+    def _login_nest(self, email, password):
         r = self._session.post(
             f"{API_URL}/session", json={"email": email, "password": password}
         )
         self._user_id = r.json()["userid"]
         self._access_token = r.json()["access_token"]
 
+    def _login_google(self, issue_token, cookie, api_key):
+        headers = {
+            'Sec-Fetch-Mode': 'cors',
+            'User-Agent': USER_AGENT,
+            'X-Requested-With': 'XmlHttpRequest',
+            'Referer': 'https://accounts.google.com/o/oauth2/iframe',
+            'cookie': cookie
+        }
+        r = requests.get(url=issue_token, headers=headers)
+        access_token = r.json()['access_token']
+
+        headers = {
+            'Authorization': 'Bearer ' + access_token,
+            'User-Agent': USER_AGENT,
+            'x-goog-api-key': api_key,
+            'Referer': 'https://home.nest.com'
+        }
+        params = {
+            "embed_google_oauth_access_token": True,
+            "expire_after": '3600s',
+            "google_oauth_access_token": access_token,
+            "policy_id": 'authproxy-oauth-policy'
+        }
+        r = requests.post(url=URL_JWT, headers=headers, params=params)
+        self._user_id = r.json()['claims']['subject']['nestId']['id']
+        self._access_token = r.json()['jwt']
+
     def update(self):
         raise NotImplementedError()
 
 
 class NestThermostatAPI(NestAPI):
-    def __init__(self, email, password):
-        super(NestThermostatAPI, self).__init__(email, password)
+    def __init__(self, email, password, issue_token, cookie, api_key):
+        super(NestThermostatAPI, self).__init__(
+            email,
+            password,
+            issue_token,
+            cookie,
+            api_key)
         self._shared_id = None
         self._czfe_url = None
         self._compressor_lockout_enabled = None
@@ -182,8 +221,13 @@ class NestThermostatAPI(NestAPI):
 
 
 class NestCameraAPI(NestAPI):
-    def __init__(self, email, password):
-        super(NestCameraAPI, self).__init__(email, password)
+    def __init__(self, email, password, issue_token, cookie, api_key):
+        super(NestCameraAPI, self).__init__(
+            email,
+            password,
+            issue_token,
+            cookie,
+            api_key)
         # log into dropcam
         self._session.post(
             f"{API_URL}/dropcam/api/login",

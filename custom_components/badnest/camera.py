@@ -7,7 +7,7 @@ from homeassistant.components.camera import Camera, SUPPORT_ON_OFF
 
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from .api import NestCameraAPI
-from .const import DOMAIN
+from .const import DOMAIN, CONF_ISSUE_TOKEN, CONF_COOKIE, CONF_APIKEY
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,7 +25,10 @@ async def async_setup_platform(hass,
 
     api = NestCameraAPI(
         hass.data[DOMAIN][CONF_EMAIL],
-        hass.data[DOMAIN][CONF_PASSWORD]
+        hass.data[DOMAIN][CONF_PASSWORD],
+        hass.data[DOMAIN][CONF_ISSUE_TOKEN],
+        hass.data[DOMAIN][CONF_COOKIE],
+        hass.data[DOMAIN][CONF_APIKEY]
     )
 
     # cameras = await hass.async_add_executor_job(nest.get_cameras())
