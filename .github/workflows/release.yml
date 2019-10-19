@@ -1,20 +1,17 @@
-name: Releases
+name: Release uploader
 
-on: 
-  push:
-    tags:
-    - '*'
+on: release
 
 jobs:
-
-  build:
+  upload_release:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Package up a release
-      run: zip -r ../badnest.zip hacs.json info.md custom_components
-    - uses: ncipollo/release-action@v1
-      with:
-        artifact: ../badnest.zip
-        artifactContentType: application/zip
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull source
+        uses: actions/checkout@v1
+      - name: Package up a release
+        run: zip -r ../badnest.zip hacs.json info.md custom_components
+      - uses: ncipollo/release-action@v1
+        with:
+          artifact: ../badnest.zip
+          artifactContentType: application/zip
+          token: ${{ secrets.GITHUB_TOKEN }}
