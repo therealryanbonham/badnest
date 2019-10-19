@@ -63,7 +63,7 @@ async def async_setup_platform(hass,
     """Set up a Foscam IP Camera."""
     nest = NestThermostatAPI(config.get(CONF_EMAIL), config.get(CONF_PASSWORD))
 
-    async_add_entities(ShittyNestClimate(nest))
+    async_add_entities([ShittyNestClimate(nest)])
 
 
 class ShittyNestClimate(ClimateDevice):
