@@ -1,6 +1,6 @@
 # badnest
 
-A bad Nest thermostats integration that uses the web api to work after Works with Nest was shut down (bad Google, go sit in your corner and think about what you did)
+A bad Nest thermostat and camera integration that uses the web api to work after Works with Nest was shut down (bad Google, go sit in your corner and think about what you did)
 
 ## Why is it bad?
 
@@ -10,7 +10,8 @@ This isn't an advertised or public API, it's still better than web scraping, but
 
 - No proper error handling
 - Won't work with 2FA enabled accounts
-- Will only work the for thermostat, I have no other devices to test with
+- Tested with a single thermostat, I have no other devices to test with
+- Camera integration is untested by me
 - Nest could change their webapp api at any time, making this defunct
 - Won't work with Google-linked accounts
 - Presets don't work (Eco, Away)
@@ -21,6 +22,9 @@ This isn't an advertised or public API, it's still better than web scraping, but
 badnest:
   email: email@domain.com
   password: !secret nest_password
+
+camera:
+  - platform: badnest
 
 climate:
   - platform: badnest
