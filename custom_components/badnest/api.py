@@ -19,7 +19,7 @@ class NestAPI:
         r = self._session.post(
             f"{API_URL}/session", json={"email": email, "password": password}
         )
-        self.user_id = r.json()["userid"]
+        self._user_id = r.json()["userid"]
         self._access_token = r.json()["access_token"]
 
     def update(self):
