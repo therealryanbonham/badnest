@@ -1,4 +1,4 @@
 {
     "name": "Bad Nest Thermostat",
-    "domains": ["climate"]
+    "domains": ["climate", "camera"]
 }
