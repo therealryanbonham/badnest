@@ -1,0 +1,19 @@
+name: Release zip
+
+on: release
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: Package up a release
+      run: zip -r ../badnest.zip hacs.json info.md custom_components
+    - name: Run a multi-line script
+      uses: JasonEtco/upload-to-release@master
+      with:
+          args: ../badnest.zip
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
