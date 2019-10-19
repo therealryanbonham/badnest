@@ -1,5 +1,6 @@
 """Demo platform that offers a fake climate device."""
 from datetime import datetime
+import logging
 
 from homeassistant.components.climate import ClimateDevice
 from homeassistant.components.climate.const import (
@@ -55,6 +56,8 @@ MODE_NEST_TO_HASS = {v: k for k, v in MODE_HASS_TO_NEST.items()}
 PRESET_AWAY_AND_ECO = "Away and Eco"
 
 PRESET_MODES = [PRESET_NONE, PRESET_AWAY, PRESET_ECO, PRESET_AWAY_AND_ECO]
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_platform(hass,
