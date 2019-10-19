@@ -21,9 +21,14 @@ from homeassistant.components.climate.const import (
     CURRENT_HVAC_IDLE,
     CURRENT_HVAC_COOL,
 )
-from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS
+from homeassistant.const import (
+    ATTR_TEMPERATURE,
+    TEMP_CELSIUS,
+    CONF_EMAIL,
+    CONF_PASSWORD,
+)
 
-from .const import DOMAIN
+from .api import NestThermostatAPI
 
 NEST_MODE_HEAT_COOL = "range"
 NEST_MODE_ECO = "eco"
@@ -51,13 +56,14 @@ PRESET_AWAY_AND_ECO = "Away and Eco"
 PRESET_MODES = [PRESET_NONE, PRESET_AWAY, PRESET_ECO, PRESET_AWAY_AND_ECO]
 
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Set up the Nest climate device."""
-    add_entities(
-        [
-            ShittyNestClimate(hass.data[DOMAIN]),
-        ]
-    )
+async def async_setup_platform(hass,
+                               config,
+                               async_add_entities,
+                               discovery_info=None):
+    """Set up a Foscam IP Camera."""
+    nest = NestThermostatAPI(config.get(CONF_EMAIL), config.get(CONF_PASSWORD))
+
+    async_add_entities(ShittyNestClimate(nest))
 
 
 class ShittyNestClimate(ClimateDevice):
@@ -65,7 +71,7 @@ class ShittyNestClimate(ClimateDevice):
 
     def __init__(self, api):
         """Initialize the thermostat."""
-        self._name = "Nest"
+        self._name = "Nest Thermostat"
         self._unit_of_measurement = TEMP_CELSIUS
         self._fan_modes = [FAN_ON, FAN_AUTO]
 
@@ -221,7 +227,7 @@ class ShittyNestClimate(ClimateDevice):
     def set_fan_mode(self, fan_mode):
         """Turn fan on/off."""
         if self.device.has_fan:
-            if fan_mode == 'on':
+            if fan_mode == "on":
                 self.device.set_fan(int(datetime.now().timestamp() + 60 * 30))
             else:
                 self.device.set_fan(0)
