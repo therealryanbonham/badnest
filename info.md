@@ -9,11 +9,11 @@ This isn't an advertised or public API, it's still better than web scraping, but
 ## Drawbacks
 
 - No proper error handling
-- Won't work with 2FA enabled accounts
+- Won't work with 2FA enabled accounts (Works with 2fa Google Accounts)
 - Tested with a single thermostat, I have no other devices to test with
 - Camera integration is untested by me
 - Nest could change their webapp api at any time, making this defunct
-- Presets don't work (Eco, Away)
+- Thermostat presets don't work (Eco, Away)
 
 ## Example configuration.yaml - When you're not using the Google Auth Login
 
