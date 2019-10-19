@@ -11,7 +11,6 @@ from homeassistant.components.climate.const import (
     HVAC_MODE_COOL,
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
-    SUPPORT_PRESET_MODE,
     SUPPORT_FAN_MODE,
     SUPPORT_TARGET_TEMPERATURE,
     SUPPORT_TARGET_TEMPERATURE_RANGE,
@@ -22,9 +21,8 @@ from homeassistant.components.climate.const import (
     CURRENT_HVAC_IDLE,
     CURRENT_HVAC_COOL,
 )
-from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS, TEMP_FAHRENHEIT
+from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS
 
-from .api import NestAPI
 from .const import DOMAIN
 
 NEST_MODE_HEAT_COOL = "range"
@@ -52,6 +50,7 @@ PRESET_AWAY_AND_ECO = "Away and Eco"
 
 PRESET_MODES = [PRESET_NONE, PRESET_AWAY, PRESET_ECO, PRESET_AWAY_AND_ECO]
 
+
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the Nest climate device."""
     add_entities(
@@ -71,7 +70,8 @@ class ShittyNestClimate(ClimateDevice):
         self._fan_modes = [FAN_ON, FAN_AUTO]
 
         # Set the default supported features
-        self._support_flags = SUPPORT_TARGET_TEMPERATURE #| SUPPORT_PRESET_MODE
+        self._support_flags = SUPPORT_TARGET_TEMPERATURE
+        # | SUPPORT_PRESET_MODE
 
         # Not all nest devices support cooling and heating remove unused
         self._operation_list = []
@@ -80,7 +80,7 @@ class ShittyNestClimate(ClimateDevice):
 
         if self.device.can_heat and self.device.can_cool:
             self._operation_list.append(HVAC_MODE_AUTO)
-            self._support_flags = self._support_flags | SUPPORT_TARGET_TEMPERATURE_RANGE
+            self._support_flags |= SUPPORT_TARGET_TEMPERATURE_RANGE
 
         # Add supported nest thermostat features
         if self.device.can_heat:
@@ -131,7 +131,7 @@ class ShittyNestClimate(ClimateDevice):
     def target_temperature_high(self):
         """Return the highbound target temperature we try to reach."""
         if self.device.mode == NEST_MODE_ECO:
-            #TODO: Grab properly
+            # TODO: Grab properly
             return None
         if self.device.mode == NEST_MODE_HEAT_COOL:
             return self.device.target_temperature_high
@@ -141,7 +141,7 @@ class ShittyNestClimate(ClimateDevice):
     def target_temperature_low(self):
         """Return the lowbound target temperature we try to reach."""
         if self.device.mode == NEST_MODE_ECO:
-            #TODO: Grab properly
+            # TODO: Grab properly
             return None
         if self.device.mode == NEST_MODE_HEAT_COOL:
             return self.device.target_temperature_low
@@ -235,7 +235,7 @@ class ShittyNestClimate(ClimateDevice):
 
         if is_away != need_away:
             pass
-            #self.device.set_away()
+            # self.device.set_away()
 
         if is_eco != need_eco:
             if need_eco:
@@ -246,4 +246,3 @@ class ShittyNestClimate(ClimateDevice):
     def update(self):
         """Updates data"""
         self.device.update()
-

@@ -19,6 +19,7 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+
 def setup(hass, config):
     """Set up the asuswrt component."""
     if config.get(DOMAIN) is not None:
