@@ -67,10 +67,10 @@ async def async_setup_platform(hass,
         hass.data[DOMAIN][CONF_PASSWORD]
     )
 
-    async_add_entities([ShittyNestClimate(nest)])
+    async_add_entities([NestClimate(nest)])
 
 
-class ShittyNestClimate(ClimateDevice):
+class NestClimate(ClimateDevice):
     """Representation of a Nest climate device."""
 
     def __init__(self, api):
