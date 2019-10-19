@@ -16,10 +16,10 @@ class NestAPI:
         self._session = requests.Session()
         self._session.headers.update({"Referer": "https://home.nest.com/"})
         self._device_id = None
-        if email is not None and password is not None:
-            self._login_nest(email, password)
-        else:
+        if not email and not password:
             self._login_google(issue_token, cookie, api_key)
+        else:
+            self._login_nest(email, password)
         self.update()
 
     def _login_nest(self, email, password):
