@@ -29,6 +29,7 @@ from homeassistant.const import (
 )
 
 from .api import NestThermostatAPI
+from .const import DOMAIN
 
 NEST_MODE_HEAT_COOL = "range"
 NEST_MODE_ECO = "eco"
@@ -60,14 +61,17 @@ async def async_setup_platform(hass,
                                config,
                                async_add_entities,
                                discovery_info=None):
-    """Set up a Foscam IP Camera."""
-    nest = NestThermostatAPI(config.get(CONF_EMAIL), config.get(CONF_PASSWORD))
+    """Set up the Nest climate device."""
+    nest = NestThermostatAPI(
+        hass.data[DOMAIN][CONF_EMAIL],
+        hass.data[DOMAIN][CONF_PASSWORD]
+    )
 
     async_add_entities([ShittyNestClimate(nest)])
 
 
 class ShittyNestClimate(ClimateDevice):
-    """Representation of a demo climate device."""
+    """Representation of a Nest climate device."""
 
     def __init__(self, api):
         """Initialize the thermostat."""

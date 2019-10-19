@@ -16,3 +16,17 @@ CONFIG_SCHEMA = vol.Schema(
     },
     extra=vol.ALLOW_EXTRA,
 )
+
+
+def setup(hass, config):
+    """Set up the badnest component."""
+    if config.get(DOMAIN) is not None:
+        email = config[DOMAIN].get(CONF_EMAIL)
+        password = config[DOMAIN].get(CONF_PASSWORD)
+    else:
+        email = None
+        password = None
+
+    hass.data[DOMAIN] = {CONF_EMAIL: email, CONF_PASSWORD: password}
+
+    return True

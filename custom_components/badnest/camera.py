@@ -6,6 +6,7 @@ from homeassistant.util.dt import utcnow
 from homeassistant.components.camera import Camera, SUPPORT_ON_OFF
 
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+from .api import NestCameraAPI
 from .const import DOMAIN
 
 
@@ -19,12 +20,13 @@ async def async_setup_platform(hass,
                                config,
                                async_add_entities,
                                discovery_info=None):
-    """Set up a Foscam IP Camera."""
-    from .api import NestCameraAPI
-
+    """Set up a Nest Camera."""
     hass.data[DATA_KEY] = dict()
 
-    api = NestCameraAPI(config.get(CONF_EMAIL), config.get(CONF_PASSWORD))
+    api = NestCameraAPI(
+        hass.data[DOMAIN][CONF_EMAIL],
+        hass.data[DOMAIN][CONF_PASSWORD]
+    )
 
     # cameras = await hass.async_add_executor_job(nest.get_cameras())
     cameras = []
