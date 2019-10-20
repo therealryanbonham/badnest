@@ -28,6 +28,9 @@ climate:
 
 camera:
   - platform: badnest
+
+sensor:
+  - platform: badnest
 ```
 
 ## Example configuration.yaml - When you are using the Google Auth Login
@@ -43,6 +46,9 @@ climate:
     scan_interval: 10
 
 camera:
+  - platform: badnest
+
+sensor:
   - platform: badnest
 ```
 
