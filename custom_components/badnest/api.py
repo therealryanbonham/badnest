@@ -1,4 +1,5 @@
 import requests
+import logging
 
 API_URL = "https://home.nest.com"
 CAMERA_WEBAPI_BASE = "https://webapi.camera.home.nest.com"
@@ -8,14 +9,22 @@ USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) " \
              "Chrome/75.0.3770.100 Safari/537.36"
 URL_JWT = "https://nestauthproxyservice-pa.googleapis.com/v1/issue_jwt"
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class NestAPI:
-    def __init__(self, email, password, issue_token, cookie, api_key):
+    def __init__(self,
+                 email,
+                 password,
+                 issue_token,
+                 cookie,
+                 api_key,
+                 device_id=None):
         self._user_id = None
         self._access_token = None
         self._session = requests.Session()
         self._session.headers.update({"Referer": "https://home.nest.com/"})
-        self._device_id = None
+        self._device_id = device_id
         if not email and not password:
             self._login_google(issue_token, cookie, api_key)
         else:
@@ -57,14 +66,20 @@ class NestAPI:
 
 
 class NestThermostatAPI(NestAPI):
-    def __init__(self, email, password, issue_token, cookie, api_key):
+    def __init__(self,
+                 email,
+                 password,
+                 issue_token,
+                 cookie,
+                 api_key,
+                 device_id=None):
         super(NestThermostatAPI, self).__init__(
             email,
             password,
             issue_token,
             cookie,
-            api_key)
-        self._shared_id = None
+            api_key,
+            device_id)
         self._czfe_url = None
         self._compressor_lockout_enabled = None
         self._compressor_lockout_time = None
@@ -84,6 +99,23 @@ class NestThermostatAPI(NestAPI):
         self.target_temperature_low = None
         self.current_humidity = None
         self.update()
+
+    def get_devices(self):
+        r = self._session.post(
+            f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
+            json={
+                "known_bucket_types": ["buckets"],
+                "known_bucket_versions": [],
+            },
+            headers={"Authorization": f"Basic {self._access_token}"},
+        )
+        devices = []
+        buckets = r.json()['updated_buckets'][0]['value']['buckets']
+        for bucket in buckets:
+            if bucket.startswith('device.'):
+                devices.append(bucket.replace('device.', ''))
+
+        return devices
 
     def get_action(self):
         if self._hvac_ac_state:
@@ -106,8 +138,7 @@ class NestThermostatAPI(NestAPI):
         self._czfe_url = r.json()["service_urls"]["urls"]["czfe_url"]
 
         for bucket in r.json()["updated_buckets"]:
-            if bucket["object_key"].startswith("shared."):
-                self._shared_id = bucket["object_key"]
+            if bucket["object_key"].startswith(f"shared.{self._device_id}"):
                 thermostat_data = bucket["value"]
                 self.current_temperature = \
                     thermostat_data["current_temperature"]
@@ -128,8 +159,7 @@ class NestThermostatAPI(NestAPI):
                     thermostat_data["target_temperature_low"]
                 self.can_heat = thermostat_data["can_heat"]
                 self.can_cool = thermostat_data["can_cool"]
-            elif bucket["object_key"].startswith("device."):
-                self._device_id = bucket["object_key"]
+            elif bucket["object_key"].startswith(f"device.{self._device_id}"):
                 thermostat_data = bucket["value"]
                 self._time_to_target = thermostat_data["time_to_target"]
                 self._fan_timer_timeout = thermostat_data["fan_timer_timeout"]
@@ -145,7 +175,7 @@ class NestThermostatAPI(NestAPI):
                 json={
                     "objects": [
                         {
-                            "object_key": self._shared_id,
+                            "object_key": f'shared.{self._device_id}',
                             "op": "MERGE",
                             "value": {"target_temperature": temp},
                         }
@@ -159,7 +189,7 @@ class NestThermostatAPI(NestAPI):
                 json={
                     "objects": [
                         {
-                            "object_key": self._shared_id,
+                            "object_key": f'shared.{self._device_id}',
                             "op": "MERGE",
                             "value": {
                                 "target_temperature_low": temp,
@@ -177,7 +207,7 @@ class NestThermostatAPI(NestAPI):
             json={
                 "objects": [
                     {
-                        "object_key": self._shared_id,
+                        "object_key": f'shared.{self._device_id}',
                         "op": "MERGE",
                         "value": {"target_temperature_type": mode},
                     }
@@ -192,7 +222,7 @@ class NestThermostatAPI(NestAPI):
             json={
                 "objects": [
                     {
-                        "object_key": self._device_id,
+                        "object_key": f'device.{self._device_id}',
                         "op": "MERGE",
                         "value": {"fan_timer_timeout": date},
                     }
@@ -207,7 +237,7 @@ class NestThermostatAPI(NestAPI):
             json={
                 "objects": [
                     {
-                        "object_key": self._device_id,
+                        "object_key": f'device.{self._device_id}',
                         "op": "MERGE",
                         "value": {"eco": {"mode": "manual-eco"}},
                     }
