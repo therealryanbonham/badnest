@@ -10,8 +10,8 @@ jobs:
         uses: actions/checkout@v1
       - name: Package up a release
         run: zip -r ../badnest.zip hacs.json info.md custom_components
-      - uses: ncipollo/release-action@v1
+      - uses: JasonEtco/upload-to-release@master
         with:
-          artifact: ../badnest.zip
-          artifactContentType: application/zip
-          token: ${{ secrets.GITHUB_TOKEN }}
+          args: ../badnest.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
