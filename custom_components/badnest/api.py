@@ -247,6 +247,60 @@ class NestThermostatAPI(NestAPI):
         )
 
 
+class NestTemperatureSensorAPI(NestAPI):
+    def __init__(self,
+                 email,
+                 password,
+                 issue_token,
+                 cookie,
+                 api_key,
+                 device_id=None):
+        super(NestTemperatureSensorAPI, self).__init__(
+            email,
+            password,
+            issue_token,
+            cookie,
+            api_key,
+            device_id)
+        self.temperature = None
+        self._device_id = device_id
+        self.update()
+
+    def get_devices(self):
+        r = self._session.post(
+            f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
+            json={
+                "known_bucket_types": ["buckets"],
+                "known_bucket_versions": [],
+            },
+            headers={"Authorization": f"Basic {self._access_token}"},
+        )
+        devices = []
+        buckets = r.json()['updated_buckets'][0]['value']['buckets']
+        for bucket in buckets:
+            if bucket.startswith('kryptonite.'):
+                devices.append(bucket.replace('kryptonite.', ''))
+
+        return devices
+
+    def update(self):
+        r = self._session.post(
+            f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
+            json={
+                "known_bucket_types": ["kryptonite"],
+                "known_bucket_versions": [],
+            },
+            headers={"Authorization": f"Basic {self._access_token}"},
+        )
+
+        for bucket in r.json()["updated_buckets"]:
+            if bucket["object_key"].startswith(
+                    f"kryptonite.{self._device_id}"):
+                sensor_data = bucket["value"]
+                self.temperature = sensor_data["current_temperature"]
+                self.battery_level = sensor_data["battery_level"]
+
+
 class NestCameraAPI(NestAPI):
     def __init__(self, email, password, issue_token, cookie, api_key):
         super(NestCameraAPI, self).__init__(
