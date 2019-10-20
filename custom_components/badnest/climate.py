@@ -65,7 +65,7 @@ async def async_setup_platform(hass,
                                async_add_entities,
                                discovery_info=None):
     """Set up the Nest climate device."""
-    nest = NestThermostatAPI(
+    api = NestThermostatAPI(
         hass.data[DOMAIN][CONF_EMAIL],
         hass.data[DOMAIN][CONF_PASSWORD],
         hass.data[DOMAIN][CONF_ISSUE_TOKEN],
@@ -73,17 +73,31 @@ async def async_setup_platform(hass,
         hass.data[DOMAIN][CONF_APIKEY]
     )
 
-    async_add_entities([NestClimate(nest)])
+    thermostats = []
+    _LOGGER.info("Adding thermostats")
+    for thermostat in api.get_devices():
+        _LOGGER.info(f"Adding nest thermostat uuid: {thermostat}")
+        thermostats.append(NestClimate(thermostat, NestThermostatAPI(
+            hass.data[DOMAIN][CONF_EMAIL],
+            hass.data[DOMAIN][CONF_PASSWORD],
+            hass.data[DOMAIN][CONF_ISSUE_TOKEN],
+            hass.data[DOMAIN][CONF_COOKIE],
+            hass.data[DOMAIN][CONF_APIKEY],
+            thermostat
+        )))
+
+    async_add_entities(thermostats)
 
 
 class NestClimate(ClimateDevice):
     """Representation of a Nest climate device."""
 
-    def __init__(self, api):
+    def __init__(self, device_id, api):
         """Initialize the thermostat."""
         self._name = "Nest Thermostat"
         self._unit_of_measurement = TEMP_CELSIUS
         self._fan_modes = [FAN_ON, FAN_AUTO]
+        self.device_id = device_id
 
         # Set the default supported features
         self._support_flags = SUPPORT_TARGET_TEMPERATURE
@@ -112,6 +126,11 @@ class NestClimate(ClimateDevice):
             self._support_flags = self._support_flags | SUPPORT_FAN_MODE
 
     @property
+    def unique_id(self):
+        """Return an unique ID."""
+        return self.device_id
+
+    @property
     def supported_features(self):
         """Return the list of supported features."""
         return self._support_flags
@@ -124,7 +143,7 @@ class NestClimate(ClimateDevice):
     @property
     def name(self):
         """Return the name of the climate device."""
-        return self._name
+        return self.device_id
 
     @property
     def temperature_unit(self):
@@ -135,6 +154,11 @@ class NestClimate(ClimateDevice):
     def current_temperature(self):
         """Return the current temperature."""
         return self.device.current_temperature
+
+    @property
+    def current_humidity(self):
+        """Return the current humidity."""
+        return self.device.current_humidity
 
     @property
     def target_temperature(self):
