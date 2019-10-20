@@ -20,7 +20,6 @@ class NestAPI:
             self._login_google(issue_token, cookie, api_key)
         else:
             self._login_nest(email, password)
-        self.update()
 
     def _login_nest(self, email, password):
         r = self._session.post(
@@ -56,9 +55,6 @@ class NestAPI:
         self._user_id = r.json()['claims']['subject']['nestId']['id']
         self._access_token = r.json()['jwt']
 
-    def update(self):
-        raise NotImplementedError()
-
 
 class NestThermostatAPI(NestAPI):
     def __init__(self, email, password, issue_token, cookie, api_key):
@@ -87,6 +83,7 @@ class NestThermostatAPI(NestAPI):
         self.target_temperature_high = None
         self.target_temperature_low = None
         self.current_humidity = None
+        self.update()
 
     def get_action(self):
         if self._hvac_ac_state:
@@ -240,6 +237,7 @@ class NestCameraAPI(NestAPI):
         self.battery_voltage = None
         self.ac_voltge = None
         self.data_tier = None
+        self.update()
 
     def set_device(self, uuid):
         self._device_id = uuid
