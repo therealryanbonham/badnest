@@ -9,9 +9,9 @@ jobs:
       - name: Pull source
         uses: actions/checkout@v1
       - name: Package up a release
-        run: zip -r ../badnest.zip hacs.json info.md custom_components
+        run: zip -r badnest.zip hacs.json info.md custom_components
       - uses: JasonEtco/upload-to-release@master
         with:
-          args: ../badnest.zip
+          args: badnest.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
