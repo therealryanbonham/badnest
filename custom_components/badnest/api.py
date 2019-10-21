@@ -92,7 +92,6 @@ class NestThermostatAPI(NestAPI):
         self.can_cool = None
         self.has_fan = None
         self.fan = None
-        self.away = None
         self.current_temperature = None
         self.target_temperature = None
         self.target_temperature_high = None
@@ -151,7 +150,8 @@ class NestThermostatAPI(NestAPI):
                 ]
                 self._hvac_ac_state = thermostat_data["hvac_ac_state"]
                 self._hvac_heater_state = thermostat_data["hvac_heater_state"]
-                self.mode = thermostat_data["target_temperature_type"]
+                if self.mode != 'eco':
+                    self.mode = thermostat_data["target_temperature_type"]
                 self.target_temperature_high = thermostat_data[
                     "target_temperature_high"
                 ]
@@ -166,7 +166,10 @@ class NestThermostatAPI(NestAPI):
                 self.has_fan = thermostat_data["has_fan"]
                 self.fan = thermostat_data["fan_timer_timeout"] > 0
                 self.current_humidity = thermostat_data["current_humidity"]
-                self.away = thermostat_data["home_away_input"]
+                if thermostat_data["eco"]["mode"] == 'manual-eco':
+                    self.mode = 'eco'
+                else:
+                    self.mode = 'unknown'
 
     def set_temp(self, temp, temp_high=None):
         if temp_high is None:
@@ -231,7 +234,8 @@ class NestThermostatAPI(NestAPI):
             headers={"Authorization": f"Basic {self._access_token}"},
         )
 
-    def set_eco_mode(self):
+    def set_eco_mode(self, state):
+        mode = 'manual-eco' if state else 'schedule'
         self._session.post(
             f"{self._czfe_url}/v5/put",
             json={
@@ -239,7 +243,7 @@ class NestThermostatAPI(NestAPI):
                     {
                         "object_key": f'device.{self._device_id}',
                         "op": "MERGE",
-                        "value": {"eco": {"mode": "manual-eco"}},
+                        "value": {"eco": {"mode": mode}},
                     }
                 ]
             },
