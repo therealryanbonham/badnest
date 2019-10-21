@@ -13,9 +13,9 @@ from homeassistant.components.climate.const import (
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
     SUPPORT_FAN_MODE,
+    SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE,
     SUPPORT_TARGET_TEMPERATURE_RANGE,
-    PRESET_AWAY,
     PRESET_ECO,
     PRESET_NONE,
     CURRENT_HVAC_HEAT,
@@ -53,9 +53,7 @@ ACTION_NEST_TO_HASS = {
 
 MODE_NEST_TO_HASS = {v: k for k, v in MODE_HASS_TO_NEST.items()}
 
-PRESET_AWAY_AND_ECO = "Away and Eco"
-
-PRESET_MODES = [PRESET_NONE, PRESET_AWAY, PRESET_ECO, PRESET_AWAY_AND_ECO]
+PRESET_MODES = [PRESET_NONE, PRESET_ECO]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,8 +98,7 @@ class NestClimate(ClimateDevice):
         self.device_id = device_id
 
         # Set the default supported features
-        self._support_flags = SUPPORT_TARGET_TEMPERATURE
-        # | SUPPORT_PRESET_MODE
+        self._support_flags = SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
 
         # Not all nest devices support cooling and heating remove unused
         self._operation_list = []
@@ -195,7 +192,9 @@ class NestClimate(ClimateDevice):
     @property
     def hvac_mode(self):
         """Return hvac target hvac state."""
-        if self.device.mode is None or self.device.mode == NEST_MODE_ECO:
+        if self.device.mode == 'unknown' \
+            or self.device.mode == NEST_MODE_ECO \
+                or self.device.mode is None:
             # We assume the first operation in operation list is the main one
             return self._operation_list[0]
 
@@ -209,16 +208,10 @@ class NestClimate(ClimateDevice):
     @property
     def preset_mode(self):
         """Return current preset mode."""
-        if self.device.away and self.device.mode == NEST_MODE_ECO:
-            return PRESET_AWAY_AND_ECO
-
-        if self.device.away:
-            return PRESET_AWAY
-
         if self.device.mode == NEST_MODE_ECO:
             return PRESET_ECO
 
-        return None
+        return PRESET_NONE
 
     @property
     def preset_modes(self):
@@ -268,20 +261,11 @@ class NestClimate(ClimateDevice):
 
     def set_preset_mode(self, preset_mode):
         """Set preset mode."""
-        need_away = preset_mode in (PRESET_AWAY, PRESET_AWAY_AND_ECO)
-        need_eco = preset_mode in (PRESET_ECO, PRESET_AWAY_AND_ECO)
-        is_away = self.device.away
+        need_eco = preset_mode in (PRESET_ECO)
         is_eco = self.device.mode == NEST_MODE_ECO
 
-        if is_away != need_away:
-            pass
-            # self.device.set_away()
-
         if is_eco != need_eco:
-            if need_eco:
-                self.device.set_eco_mode()
-            else:
-                self.device.mode = MODE_HASS_TO_NEST[self._operation_list[0]]
+            self.device.set_eco_mode(need_eco)
 
     def update(self):
         """Updates data"""
