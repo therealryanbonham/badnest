@@ -192,9 +192,7 @@ class NestClimate(ClimateDevice):
     @property
     def hvac_mode(self):
         """Return hvac target hvac state."""
-        if self.device.mode == 'unknown' \
-            or self.device.mode == NEST_MODE_ECO \
-                or self.device.mode is None:
+        if self.device.mode is None or self.device.mode == NEST_MODE_ECO:
             # We assume the first operation in operation list is the main one
             return self._operation_list[0]
 

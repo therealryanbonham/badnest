@@ -136,6 +136,7 @@ class NestThermostatAPI(NestAPI):
 
         self._czfe_url = r.json()["service_urls"]["urls"]["czfe_url"]
 
+        temp_mode = None
         for bucket in r.json()["updated_buckets"]:
             if bucket["object_key"].startswith(f"shared.{self._device_id}"):
                 thermostat_data = bucket["value"]
@@ -150,8 +151,7 @@ class NestThermostatAPI(NestAPI):
                 ]
                 self._hvac_ac_state = thermostat_data["hvac_ac_state"]
                 self._hvac_heater_state = thermostat_data["hvac_heater_state"]
-                if self.mode != 'eco':
-                    self.mode = thermostat_data["target_temperature_type"]
+                temp_mode = thermostat_data["target_temperature_type"]
                 self.target_temperature_high = thermostat_data[
                     "target_temperature_high"
                 ]
@@ -167,9 +167,8 @@ class NestThermostatAPI(NestAPI):
                 self.fan = thermostat_data["fan_timer_timeout"] > 0
                 self.current_humidity = thermostat_data["current_humidity"]
                 if thermostat_data["eco"]["mode"] == 'manual-eco':
-                    self.mode = 'eco'
-                else:
-                    self.mode = 'unknown'
+                    temp_mode = 'eco'
+        self.mode = temp_mode
 
     def set_temp(self, temp, temp_high=None):
         if temp_high is None:
