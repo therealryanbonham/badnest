@@ -25,10 +25,18 @@ class NestAPI:
         self._session = requests.Session()
         self._session.headers.update({"Referer": "https://home.nest.com/"})
         self._device_id = device_id
-        if not email and not password:
-            self._login_google(issue_token, cookie, api_key)
+        self._email = email
+        self._password = password
+        self._issue_token = issue_token
+        self._cookie = cookie
+        self._api_key = api_key
+        self.login()
+
+    def login(self):
+        if not self._email and not self._password:
+            self._login_google(self._issue_token, self._cookie, self._api_key)
         else:
-            self._login_nest(email, password)
+            self._login_nest(self._email, self._password)
 
     def _login_nest(self, email, password):
         r = self._session.post(
@@ -100,21 +108,27 @@ class NestThermostatAPI(NestAPI):
         self.update()
 
     def get_devices(self):
-        r = self._session.post(
-            f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
-            json={
-                "known_bucket_types": ["buckets"],
-                "known_bucket_versions": [],
-            },
-            headers={"Authorization": f"Basic {self._access_token}"},
-        )
-        devices = []
-        buckets = r.json()['updated_buckets'][0]['value']['buckets']
-        for bucket in buckets:
-            if bucket.startswith('device.'):
-                devices.append(bucket.replace('device.', ''))
+        try:
+            r = self._session.post(
+                f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
+                json={
+                    "known_bucket_types": ["buckets"],
+                    "known_bucket_versions": [],
+                },
+                headers={"Authorization": f"Basic {self._access_token}"},
+            )
+            devices = []
+            buckets = r.json()['updated_buckets'][0]['value']['buckets']
+            for bucket in buckets:
+                if bucket.startswith('device.'):
+                    devices.append(bucket.replace('device.', ''))
 
-        return devices
+            return devices
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error(e)
+            _LOGGER.error('Failed to get devices, trying to log in again')
+            self.login()
+            return self.get_devices()
 
     def get_action(self):
         if self._hvac_ac_state:
@@ -125,51 +139,62 @@ class NestThermostatAPI(NestAPI):
             return "off"
 
     def update(self):
-        r = self._session.post(
-            f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
-            json={
-                "known_bucket_types": ["shared", "device"],
-                "known_bucket_versions": [],
-            },
-            headers={"Authorization": f"Basic {self._access_token}"},
-        )
+        try:
+            r = self._session.post(
+                f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
+                json={
+                    "known_bucket_types": ["shared", "device"],
+                    "known_bucket_versions": [],
+                },
+                headers={"Authorization": f"Basic {self._access_token}"},
+            )
 
-        self._czfe_url = r.json()["service_urls"]["urls"]["czfe_url"]
+            self._czfe_url = r.json()["service_urls"]["urls"]["czfe_url"]
 
-        temp_mode = None
-        for bucket in r.json()["updated_buckets"]:
-            if bucket["object_key"].startswith(f"shared.{self._device_id}"):
-                thermostat_data = bucket["value"]
-                self.current_temperature = \
-                    thermostat_data["current_temperature"]
-                self.target_temperature = thermostat_data["target_temperature"]
-                self._compressor_lockout_enabled = thermostat_data[
-                    "compressor_lockout_enabled"
-                ]
-                self._compressor_lockout_time = thermostat_data[
-                    "compressor_lockout_timeout"
-                ]
-                self._hvac_ac_state = thermostat_data["hvac_ac_state"]
-                self._hvac_heater_state = thermostat_data["hvac_heater_state"]
-                temp_mode = thermostat_data["target_temperature_type"]
-                self.target_temperature_high = thermostat_data[
-                    "target_temperature_high"
-                ]
-                self.target_temperature_low = \
-                    thermostat_data["target_temperature_low"]
-                self.can_heat = thermostat_data["can_heat"]
-                self.can_cool = thermostat_data["can_cool"]
-            elif bucket["object_key"].startswith(f"device.{self._device_id}"):
-                thermostat_data = bucket["value"]
-                self._time_to_target = thermostat_data["time_to_target"]
-                self._fan_timer_timeout = thermostat_data["fan_timer_timeout"]
-                self.has_fan = thermostat_data["has_fan"]
-                self.fan = thermostat_data["fan_timer_timeout"] > 0
-                self.current_humidity = thermostat_data["current_humidity"]
-                if thermostat_data["eco"]["mode"] == 'manual-eco' or \
-                        thermostat_data["eco"]["mode"] == 'auto-eco':
-                    temp_mode = 'eco'
-        self.mode = temp_mode
+            temp_mode = None
+            for bucket in r.json()["updated_buckets"]:
+                if bucket["object_key"] \
+                        .startswith(f"shared.{self._device_id}"):
+                    thermostat_data = bucket["value"]
+                    self.current_temperature = \
+                        thermostat_data["current_temperature"]
+                    self.target_temperature = \
+                        thermostat_data["target_temperature"]
+                    self._compressor_lockout_enabled = thermostat_data[
+                        "compressor_lockout_enabled"
+                    ]
+                    self._compressor_lockout_time = thermostat_data[
+                        "compressor_lockout_timeout"
+                    ]
+                    self._hvac_ac_state = thermostat_data["hvac_ac_state"]
+                    self._hvac_heater_state = \
+                        thermostat_data["hvac_heater_state"]
+                    temp_mode = thermostat_data["target_temperature_type"]
+                    self.target_temperature_high = thermostat_data[
+                        "target_temperature_high"
+                    ]
+                    self.target_temperature_low = \
+                        thermostat_data["target_temperature_low"]
+                    self.can_heat = thermostat_data["can_heat"]
+                    self.can_cool = thermostat_data["can_cool"]
+                elif bucket["object_key"] \
+                        .startswith(f"device.{self._device_id}"):
+                    thermostat_data = bucket["value"]
+                    self._time_to_target = thermostat_data["time_to_target"]
+                    self._fan_timer_timeout = \
+                        thermostat_data["fan_timer_timeout"]
+                    self.has_fan = thermostat_data["has_fan"]
+                    self.fan = thermostat_data["fan_timer_timeout"] > 0
+                    self.current_humidity = thermostat_data["current_humidity"]
+                    if thermostat_data["eco"]["mode"] == 'manual-eco' or \
+                            thermostat_data["eco"]["mode"] == 'auto-eco':
+                        temp_mode = 'eco'
+            self.mode = temp_mode
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error(e)
+            _LOGGER.error('Failed to update, trying to log in again')
+            self.login()
+            self.update()
 
     def set_temp(self, temp, temp_high=None):
         if temp_high is None:
