@@ -169,7 +169,8 @@ class NestThermostatAPI(NestAPI):
                     self._hvac_ac_state = thermostat_data["hvac_ac_state"]
                     self._hvac_heater_state = \
                         thermostat_data["hvac_heater_state"]
-                    temp_mode = thermostat_data["target_temperature_type"]
+                    if temp_mode is None:
+                        temp_mode = thermostat_data["target_temperature_type"]
                     self.target_temperature_high = thermostat_data[
                         "target_temperature_high"
                     ]
