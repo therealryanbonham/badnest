@@ -166,7 +166,8 @@ class NestThermostatAPI(NestAPI):
                 self.has_fan = thermostat_data["has_fan"]
                 self.fan = thermostat_data["fan_timer_timeout"] > 0
                 self.current_humidity = thermostat_data["current_humidity"]
-                if thermostat_data["eco"]["mode"] == 'manual-eco':
+                if thermostat_data["eco"]["mode"] == 'manual-eco' or \
+                        thermostat_data["eco"]["mode"] == 'auto-eco':
                     temp_mode = 'eco'
         self.mode = temp_mode
 
