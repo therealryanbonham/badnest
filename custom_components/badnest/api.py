@@ -126,7 +126,10 @@ class NestThermostatAPI(NestAPI):
             return devices
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
-            _LOGGER.error('Failed to get devices, trying to log in again')
+            _LOGGER.error('Failed to get devices, trying again')
+            return self.get_devices()
+        except KeyError:
+            _LOGGER.debug('Failed to get devices, trying to log in again')
             self.login()
             return self.get_devices()
 
@@ -193,7 +196,10 @@ class NestThermostatAPI(NestAPI):
             self.mode = temp_mode
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
-            _LOGGER.error('Failed to update, trying to log in again')
+            _LOGGER.error('Failed to update, trying again')
+            self.update()
+        except KeyError:
+            _LOGGER.debug('Failed to update, trying to log in again')
             self.login()
             self.update()
 
@@ -297,38 +303,56 @@ class NestTemperatureSensorAPI(NestAPI):
         self.update()
 
     def get_devices(self):
-        r = self._session.post(
-            f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
-            json={
-                "known_bucket_types": ["buckets"],
-                "known_bucket_versions": [],
-            },
-            headers={"Authorization": f"Basic {self._access_token}"},
-        )
-        devices = []
-        buckets = r.json()['updated_buckets'][0]['value']['buckets']
-        for bucket in buckets:
-            if bucket.startswith('kryptonite.'):
-                devices.append(bucket.replace('kryptonite.', ''))
+        try:
+            r = self._session.post(
+                f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
+                json={
+                    "known_bucket_types": ["buckets"],
+                    "known_bucket_versions": [],
+                },
+                headers={"Authorization": f"Basic {self._access_token}"},
+            )
+            devices = []
+            buckets = r.json()['updated_buckets'][0]['value']['buckets']
+            for bucket in buckets:
+                if bucket.startswith('kryptonite.'):
+                    devices.append(bucket.replace('kryptonite.', ''))
 
-        return devices
+            return devices
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error(e)
+            _LOGGER.error('Failed to get devices, trying again')
+            return self.get_devices()
+        except KeyError:
+            _LOGGER.debug('Failed to get devices, trying to log in again')
+            self.login()
+            return self.get_devices()
 
     def update(self):
-        r = self._session.post(
-            f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
-            json={
-                "known_bucket_types": ["kryptonite"],
-                "known_bucket_versions": [],
-            },
-            headers={"Authorization": f"Basic {self._access_token}"},
-        )
+        try:
+            r = self._session.post(
+                f"{API_URL}/api/0.1/user/{self._user_id}/app_launch",
+                json={
+                    "known_bucket_types": ["kryptonite"],
+                    "known_bucket_versions": [],
+                },
+                headers={"Authorization": f"Basic {self._access_token}"},
+            )
 
-        for bucket in r.json()["updated_buckets"]:
-            if bucket["object_key"].startswith(
-                    f"kryptonite.{self._device_id}"):
-                sensor_data = bucket["value"]
-                self.temperature = sensor_data["current_temperature"]
-                self.battery_level = sensor_data["battery_level"]
+            for bucket in r.json()["updated_buckets"]:
+                if bucket["object_key"].startswith(
+                        f"kryptonite.{self._device_id}"):
+                    sensor_data = bucket["value"]
+                    self.temperature = sensor_data["current_temperature"]
+                    self.battery_level = sensor_data["battery_level"]
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error(e)
+            _LOGGER.error('Failed to update, trying again')
+            self.update()
+        except KeyError:
+            _LOGGER.debug('Failed to update, trying to log in again')
+            self.login()
+            self.update()
 
 
 class NestCameraAPI(NestAPI):
