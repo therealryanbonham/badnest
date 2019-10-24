@@ -356,18 +356,26 @@ class NestTemperatureSensorAPI(NestAPI):
 
 
 class NestCameraAPI(NestAPI):
-    def __init__(self, email, password, issue_token, cookie, api_key):
+    def __init__(self,
+                 email,
+                 password,
+                 issue_token,
+                 cookie,
+                 api_key,
+                 device_id=None):
         super(NestCameraAPI, self).__init__(
             email,
             password,
             issue_token,
             cookie,
-            api_key)
+            api_key,
+            device_id)
         # log into dropcam
         self._session.post(
             f"{API_URL}/dropcam/api/login",
             data={"access_token": self._access_token}
         )
+        self._device_id = device_id
         self.location = None
         self.name = "Nest Camera"
         self.online = None
@@ -375,10 +383,6 @@ class NestCameraAPI(NestAPI):
         self.battery_voltage = None
         self.ac_voltge = None
         self.data_tier = None
-        self.update()
-
-    def set_device(self, uuid):
-        self._device_id = uuid
         self.update()
 
     def update(self):

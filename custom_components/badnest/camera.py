@@ -13,7 +13,6 @@ from .const import DOMAIN, CONF_ISSUE_TOKEN, CONF_COOKIE, CONF_APIKEY
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAME = "Nest Camera"
-DATA_KEY = "camera.badnest"
 
 
 async def async_setup_platform(hass,
@@ -21,8 +20,6 @@ async def async_setup_platform(hass,
                                async_add_entities,
                                discovery_info=None):
     """Set up a Nest Camera."""
-    hass.data[DATA_KEY] = dict()
-
     api = NestCameraAPI(
         hass.data[DOMAIN][CONF_EMAIL],
         hass.data[DOMAIN][CONF_PASSWORD],
@@ -36,9 +33,15 @@ async def async_setup_platform(hass,
     _LOGGER.info("Adding cameras")
     for camera in api.get_cameras():
         _LOGGER.info("Adding nest cam uuid: %s", camera["uuid"])
-        device = NestCamera(camera["uuid"], api)
+        device = NestCamera(camera["uuid"], NestCameraAPI(
+            hass.data[DOMAIN][CONF_EMAIL],
+            hass.data[DOMAIN][CONF_PASSWORD],
+            hass.data[DOMAIN][CONF_ISSUE_TOKEN],
+            hass.data[DOMAIN][CONF_COOKIE],
+            hass.data[DOMAIN][CONF_APIKEY],
+            camera["uuid"]
+        ))
         cameras.append(device)
-        hass.data[DATA_KEY][camera["uuid"]] = device
 
     async_add_entities(cameras)
 
@@ -50,7 +53,6 @@ class NestCamera(Camera):
         """Initialize a Nest camera."""
         super().__init__()
         self._uuid = uuid
-        api.set_device(self._uuid)
         self._device = api
         self._time_between_snapshots = timedelta(seconds=30)
         self._last_image = None
