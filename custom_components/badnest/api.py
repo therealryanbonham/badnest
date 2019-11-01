@@ -3,7 +3,8 @@ import logging
 
 API_URL = "https://home.nest.com"
 CAMERA_WEBAPI_BASE = "https://webapi.camera.home.nest.com"
-CAMERA_URL = "https://nexusapi-us1.camera.home.nest.com"
+CAMERA_US_URL = "https://nexusapi-us1.camera.home.nest.com"
+CAMERA_EU_URL = "https://nexusapi-eu1.camera.home.nest.com"
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) " \
              "AppleWebKit/537.36 (KHTML, like Gecko) " \
              "Chrome/75.0.3770.100 Safari/537.36"
@@ -362,6 +363,7 @@ class NestCameraAPI(NestAPI):
                  issue_token,
                  cookie,
                  api_key,
+                 region,
                  device_id=None):
         super(NestCameraAPI, self).__init__(
             email,
@@ -383,6 +385,14 @@ class NestCameraAPI(NestAPI):
         self.battery_voltage = None
         self.ac_voltge = None
         self.data_tier = None
+        if region.lower() == 'eu':
+            self._camera_url = CAMERA_EU_URL
+        elif region.lower() == 'us':
+            self._camera_url = CAMERA_US_URL
+        else:
+            lower_region = region.lower()
+            self._camera_url = \
+                f'https://nexusapi-{lower_region}1.camera.home.nest.com'
         self.update()
 
     def update(self):
@@ -430,7 +440,8 @@ class NestCameraAPI(NestAPI):
 
     def get_image(self, now):
         r = self._session.get(
-            f"{CAMERA_URL}/get_image?uuid={self._device_id}&cachebuster={now}"
+            f'{self._camera_url}/get_image?uuid={self._device_id}' +
+            f'&cachebuster={now}'
         )
 
         return r.content
