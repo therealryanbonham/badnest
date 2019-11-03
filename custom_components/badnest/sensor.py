@@ -3,7 +3,7 @@ import logging
 from homeassistant.helpers.entity import Entity
 
 from .api import NestTemperatureSensorAPI
-from .const import DOMAIN, CONF_APIKEY, CONF_COOKIE, CONF_ISSUE_TOKEN
+from .const import DOMAIN, CONF_COOKIE, CONF_ISSUE_TOKEN
 
 from homeassistant.const import (
     ATTR_BATTERY_LEVEL,
@@ -26,7 +26,6 @@ async def async_setup_platform(hass,
         hass.data[DOMAIN][CONF_PASSWORD],
         hass.data[DOMAIN][CONF_ISSUE_TOKEN],
         hass.data[DOMAIN][CONF_COOKIE],
-        hass.data[DOMAIN][CONF_APIKEY]
     )
 
     sensors = []
@@ -41,7 +40,6 @@ async def async_setup_platform(hass,
                     hass.data[DOMAIN][CONF_PASSWORD],
                     hass.data[DOMAIN][CONF_ISSUE_TOKEN],
                     hass.data[DOMAIN][CONF_COOKIE],
-                    hass.data[DOMAIN][CONF_APIKEY],
                     sensor
                 )))
 

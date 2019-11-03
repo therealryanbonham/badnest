@@ -30,7 +30,7 @@ from homeassistant.const import (
 )
 
 from .api import NestThermostatAPI
-from .const import DOMAIN, CONF_ISSUE_TOKEN, CONF_COOKIE, CONF_APIKEY
+from .const import DOMAIN, CONF_ISSUE_TOKEN, CONF_COOKIE
 
 NEST_MODE_HEAT_COOL = "range"
 NEST_MODE_ECO = "eco"
@@ -68,7 +68,6 @@ async def async_setup_platform(hass,
         hass.data[DOMAIN][CONF_PASSWORD],
         hass.data[DOMAIN][CONF_ISSUE_TOKEN],
         hass.data[DOMAIN][CONF_COOKIE],
-        hass.data[DOMAIN][CONF_APIKEY]
     )
 
     thermostats = []
@@ -80,7 +79,6 @@ async def async_setup_platform(hass,
             hass.data[DOMAIN][CONF_PASSWORD],
             hass.data[DOMAIN][CONF_ISSUE_TOKEN],
             hass.data[DOMAIN][CONF_COOKIE],
-            hass.data[DOMAIN][CONF_APIKEY],
             thermostat
         )))
 
