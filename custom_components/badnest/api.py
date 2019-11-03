@@ -10,6 +10,9 @@ USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) " \
              "Chrome/75.0.3770.100 Safari/537.36"
 URL_JWT = "https://nestauthproxyservice-pa.googleapis.com/v1/issue_jwt"
 
+# Nest website's (public) API key
+NEST_API_KEY = "AIzaSyAdkSIMNc51XGNEAYWasX9UOWkS5P6sZE4"
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -19,7 +22,6 @@ class NestAPI:
                  password,
                  issue_token,
                  cookie,
-                 api_key,
                  device_id=None):
         self._user_id = None
         self._access_token = None
@@ -30,12 +32,11 @@ class NestAPI:
         self._password = password
         self._issue_token = issue_token
         self._cookie = cookie
-        self._api_key = api_key
         self.login()
 
     def login(self):
         if not self._email and not self._password:
-            self._login_google(self._issue_token, self._cookie, self._api_key)
+            self._login_google(self._issue_token, self._cookie)
         else:
             self._login_nest(self._email, self._password)
 
@@ -46,7 +47,7 @@ class NestAPI:
         self._user_id = r.json()["userid"]
         self._access_token = r.json()["access_token"]
 
-    def _login_google(self, issue_token, cookie, api_key):
+    def _login_google(self, issue_token, cookie):
         headers = {
             'Sec-Fetch-Mode': 'cors',
             'User-Agent': USER_AGENT,
@@ -60,7 +61,7 @@ class NestAPI:
         headers = {
             'Authorization': 'Bearer ' + access_token,
             'User-Agent': USER_AGENT,
-            'x-goog-api-key': api_key,
+            'x-goog-api-key': NEST_API_KEY,
             'Referer': 'https://home.nest.com'
         }
         params = {
@@ -80,14 +81,12 @@ class NestThermostatAPI(NestAPI):
                  password,
                  issue_token,
                  cookie,
-                 api_key,
                  device_id=None):
         super(NestThermostatAPI, self).__init__(
             email,
             password,
             issue_token,
             cookie,
-            api_key,
             device_id)
         self._czfe_url = None
         self._compressor_lockout_enabled = None
@@ -290,14 +289,12 @@ class NestTemperatureSensorAPI(NestAPI):
                  password,
                  issue_token,
                  cookie,
-                 api_key,
                  device_id=None):
         super(NestTemperatureSensorAPI, self).__init__(
             email,
             password,
             issue_token,
             cookie,
-            api_key,
             device_id)
         self.temperature = None
         self._device_id = device_id
@@ -362,7 +359,6 @@ class NestCameraAPI(NestAPI):
                  password,
                  issue_token,
                  cookie,
-                 api_key,
                  region,
                  device_id=None):
         super(NestCameraAPI, self).__init__(
@@ -370,7 +366,6 @@ class NestCameraAPI(NestAPI):
             password,
             issue_token,
             cookie,
-            api_key,
             device_id)
         # log into dropcam
         self._session.post(

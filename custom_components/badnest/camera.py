@@ -15,7 +15,6 @@ from homeassistant.util.dt import utcnow
 
 from .api import NestCameraAPI
 from .const import (
-    CONF_APIKEY,
     CONF_COOKIE,
     CONF_ISSUE_TOKEN,
     CONF_REGION,
@@ -41,7 +40,6 @@ async def async_setup_platform(hass,
         hass.data[DOMAIN][CONF_PASSWORD],
         hass.data[DOMAIN][CONF_ISSUE_TOKEN],
         hass.data[DOMAIN][CONF_COOKIE],
-        hass.data[DOMAIN][CONF_APIKEY],
         config.get(CONF_REGION)
     )
 
@@ -55,7 +53,6 @@ async def async_setup_platform(hass,
             hass.data[DOMAIN][CONF_PASSWORD],
             hass.data[DOMAIN][CONF_ISSUE_TOKEN],
             hass.data[DOMAIN][CONF_COOKIE],
-            hass.data[DOMAIN][CONF_APIKEY],
             config.get(CONF_REGION),
             camera["uuid"]
         ))

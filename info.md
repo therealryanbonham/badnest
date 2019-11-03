@@ -45,7 +45,6 @@ sensor:
 badnest:
   issue_token: "https://accounts.google.com/o/oauth2/iframerpc....."
   cookie: "OCAK=......"
-  api_key : "#YOURAPIKEYHERE#"
 
 climate:
   - platform: badnest
@@ -61,7 +60,7 @@ sensor:
 
 Google Login support added with many thanks to: chrisjshull from <https://github.com/chrisjshull/homebridge-nest/>
 
-The values of `"issue_token"`, `"cookie"` and `"api_key"` are specific to your Google Account. To get them, follow these steps (only needs to be done once, as long as you stay logged into your Google Account).
+The values of `"issue_token"` and `"cookie"` are specific to your Google Account. To get them, follow these steps (only needs to be done once, as long as you stay logged into your Google Account).
 
 1. Open a Chrome browser tab in Incognito Mode (or clear your cache).
 2. Open Developer Tools (View/Developer/Developer Tools).
@@ -73,6 +72,3 @@ The values of `"issue_token"`, `"cookie"` and `"api_key"` are specific to your G
 8. In the 'Filter' box, enter `oauth2/iframe`
 9. Several network calls will appear in the Dev Tools window. Click on the last `iframe` call.
 10. In the Headers tab, under Request Headers, copy the entire `cookie` (beginning `OCAK=...` - **include the whole string which is several lines long and has many field/value pairs** - do not include the `cookie:` name). This is your `"cookie"` in `configuration.yaml`.
-11. In the 'Filter' box, enter `issue_jwt`
-12. Click on the last `issue_jwt` call.
-13. In the Headers tab, under Request Headers, copy the entire `x-goog-api-key` (do not include the `x-goog-api-key:` name). This is your `"api_key"` in `configuration.yaml`.
