@@ -1,18 +1,34 @@
 """This component provides basic support for Foscam IP cameras."""
 import logging
 from datetime import timedelta
+
+import voluptuous as vol
+
+from homeassistant.components.camera import (
+    Camera,
+    SUPPORT_ON_OFF,
+    PLATFORM_SCHEMA
+)
+from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+import homeassistant.helpers.config_validation as cv
 from homeassistant.util.dt import utcnow
 
-from homeassistant.components.camera import Camera, SUPPORT_ON_OFF
-
-from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from .api import NestCameraAPI
-from .const import DOMAIN, CONF_ISSUE_TOKEN, CONF_COOKIE, CONF_APIKEY
-
+from .const import (
+    CONF_APIKEY,
+    CONF_COOKIE,
+    CONF_ISSUE_TOKEN,
+    CONF_REGION,
+    DOMAIN
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_NAME = "Nest Camera"
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
+    {
+        vol.Optional(CONF_REGION, default="us"): cv.string,
+    }
+)
 
 
 async def async_setup_platform(hass,
@@ -25,7 +41,8 @@ async def async_setup_platform(hass,
         hass.data[DOMAIN][CONF_PASSWORD],
         hass.data[DOMAIN][CONF_ISSUE_TOKEN],
         hass.data[DOMAIN][CONF_COOKIE],
-        hass.data[DOMAIN][CONF_APIKEY]
+        hass.data[DOMAIN][CONF_APIKEY],
+        config.get(CONF_REGION)
     )
 
     # cameras = await hass.async_add_executor_job(nest.get_cameras())
@@ -39,6 +56,7 @@ async def async_setup_platform(hass,
             hass.data[DOMAIN][CONF_ISSUE_TOKEN],
             hass.data[DOMAIN][CONF_COOKIE],
             hass.data[DOMAIN][CONF_APIKEY],
+            config.get(CONF_REGION),
             camera["uuid"]
         ))
         cameras.append(device)
