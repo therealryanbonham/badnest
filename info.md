@@ -13,9 +13,14 @@ This isn't an advertised or public API, it's still better than web scraping, but
 - Tested with a single thermostat, I have no other devices to test with
 - Camera integration is untested by me
 - Nest could change their webapp api at any time, making this defunct
-- Thermostat presets don't work (Eco, Away)
 
-## Example configuration.yaml - When you're not using the Google Auth Login
+## Configuration
+
+The camera's region is one of `us` or `eu` depending on your region.
+If you're not in the US or EU, you should be able to add your
+two-character country code, and it should work.
+
+### Example configuration.yaml - When you're not using the Google Auth Login
 
 ```yaml
 badnest:
@@ -28,12 +33,13 @@ climate:
 
 camera:
   - platform: badnest
+    region: us
 
 sensor:
   - platform: badnest
 ```
 
-## Example configuration.yaml - When you are using the Google Auth Login
+### Example configuration.yaml - When you are using the Google Auth Login
 
 ```yaml
 badnest:
@@ -47,6 +53,7 @@ climate:
 
 camera:
   - platform: badnest
+    region: us
 
 sensor:
   - platform: badnest
