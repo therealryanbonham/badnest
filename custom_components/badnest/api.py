@@ -16,6 +16,8 @@ KNOWN_BUCKET_TYPES = [
     # Thermostats
     "device",
     "shared",
+    # Protect
+    "topaz",
     # Temperature sensors
     "kryptonite",
 ]
@@ -48,6 +50,7 @@ class NestAPI():
         self.cameras = []
         self.thermostats = []
         self.temperature_sensors = []
+        self.protects = []
         self.login()
         self._get_devices()
         self.update()
@@ -149,7 +152,11 @@ class NestAPI():
 
             buckets = r.json()['updated_buckets'][0]['value']['buckets']
             for bucket in buckets:
-                if bucket.startswith('kryptonite.'):
+                if bucket.startswith('topaz.'):
+                    sn = bucket.replace('topaz.', '')
+                    self.protects.append(sn)
+                    self.device_data[sn] = {}
+                elif bucket.startswith('kryptonite.'):
                     sn = bucket.replace('kryptonite.', '')
                     self.temperature_sensors.append(sn)
                     self.device_data[sn] = {}
@@ -250,6 +257,22 @@ class NestAPI():
                         self.device_data[sn]['eco'] = True
                     else:
                         self.device_data[sn]['eco'] = False
+                # Protect
+                elif bucket["object_key"].startswith(
+                        f"topaz.{sn}"):
+                    self.device_data[sn]['name'] = self._wheres[
+                        sensor_data['where_id']
+                    ]
+                    if sensor_data.get('description', None):
+                        self.device_data[sn]['name'] += \
+                            f' ({sensor_data["description"]})'
+                    self.device_data[sn]['name'] += ' Protect'
+                    self.device_data[sn]['co_status'] = \
+                        sensor_data['co_status']
+                    self.device_data[sn]['smoke_status'] = \
+                        sensor_data['smoke_status']
+                    self.device_data[sn]['battery_health_state'] = \
+                        sensor_data['battery_health_state']
                 # Temperature sensors
                 elif bucket["object_key"].startswith(
                         f"kryptonite.{sn}"):
