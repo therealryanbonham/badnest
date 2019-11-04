@@ -2,32 +2,17 @@
 import logging
 from datetime import timedelta
 
-import voluptuous as vol
-
 from homeassistant.components.camera import (
     Camera,
     SUPPORT_ON_OFF,
-    PLATFORM_SCHEMA
 )
-from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
-import homeassistant.helpers.config_validation as cv
 from homeassistant.util.dt import utcnow
 
-from .api import NestCameraAPI
 from .const import (
-    CONF_COOKIE,
-    CONF_ISSUE_TOKEN,
-    CONF_REGION,
     DOMAIN
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Optional(CONF_REGION, default="us"): cv.string,
-    }
-)
 
 
 async def async_setup_platform(hass,
@@ -35,28 +20,13 @@ async def async_setup_platform(hass,
                                async_add_entities,
                                discovery_info=None):
     """Set up a Nest Camera."""
-    api = NestCameraAPI(
-        hass.data[DOMAIN][CONF_EMAIL],
-        hass.data[DOMAIN][CONF_PASSWORD],
-        hass.data[DOMAIN][CONF_ISSUE_TOKEN],
-        hass.data[DOMAIN][CONF_COOKIE],
-        config.get(CONF_REGION)
-    )
+    api = hass.data[DOMAIN]['api']
 
-    # cameras = await hass.async_add_executor_job(nest.get_cameras())
     cameras = []
-    _LOGGER.info("Adding cameras")
-    for camera in api.get_cameras():
-        _LOGGER.info("Adding nest cam uuid: %s", camera["uuid"])
-        device = NestCamera(camera["uuid"], NestCameraAPI(
-            hass.data[DOMAIN][CONF_EMAIL],
-            hass.data[DOMAIN][CONF_PASSWORD],
-            hass.data[DOMAIN][CONF_ISSUE_TOKEN],
-            hass.data[DOMAIN][CONF_COOKIE],
-            config.get(CONF_REGION),
-            camera["uuid"]
-        ))
-        cameras.append(device)
+    _LOGGER.info("Adding temperature sensors")
+    for camera in api['cameras']:
+        _LOGGER.info(f"Adding nest camera uuid: {camera}")
+        cameras.append(NestCamera(camera, api))
 
     async_add_entities(cameras)
 
@@ -78,7 +48,7 @@ class NestCamera(Camera):
         """Return information about the device."""
         return {
             "identifiers": {(DOMAIN, self._uuid)},
-            "name": self.name,
+            "name": self._device.device_data[self._uuid]['name'],
             "manufacturer": "Nest Labs",
             "model": "Camera",
         }
@@ -95,20 +65,20 @@ class NestCamera(Camera):
     @property
     def is_on(self):
         """Return true if on."""
-        return self._device.online
+        return self._device.device_data[self._uuid]['online']
 
     @property
     def is_recording(self):
         return True
         """Return true if the device is recording."""
-        return self._device.is_streaming
+        return self._device.device_data[self._uuid]['is_streaming']
 
     def turn_off(self):
-        self._device.turn_off()
+        self._device.camera_turn_off(self._uuid)
         self.schedule_update_ha_state()
 
     def turn_on(self):
-        self._device.turn_on()
+        self._device.camera_turn_on(self._uuid)
         self.schedule_update_ha_state()
 
     @property
@@ -123,7 +93,7 @@ class NestCamera(Camera):
     @property
     def name(self):
         """Return the name of this camera."""
-        return self._device.name
+        return self._device.device_data[self._uuid]['name']
 
     def _ready_for_snapshot(self, now):
         return self._next_snapshot_at is None or now > self._next_snapshot_at
@@ -132,8 +102,7 @@ class NestCamera(Camera):
         """Return a still image response from the camera."""
         now = utcnow()
         if self._ready_for_snapshot(now) or True:
-            image = self._device.get_image(now)
-            #  _LOGGER.info(image)
+            image = self._device.camera_get_image(self._uuid, now)
 
             self._next_snapshot_at = now + self._time_between_snapshots
             self._last_image = image

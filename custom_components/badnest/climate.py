@@ -25,12 +25,11 @@ from homeassistant.components.climate.const import (
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     TEMP_CELSIUS,
-    CONF_EMAIL,
-    CONF_PASSWORD,
 )
 
-from .api import NestThermostatAPI
-from .const import DOMAIN, CONF_ISSUE_TOKEN, CONF_COOKIE
+from .const import (
+    DOMAIN,
+)
 
 NEST_MODE_HEAT_COOL = "range"
 NEST_MODE_ECO = "eco"
@@ -63,24 +62,13 @@ async def async_setup_platform(hass,
                                async_add_entities,
                                discovery_info=None):
     """Set up the Nest climate device."""
-    api = NestThermostatAPI(
-        hass.data[DOMAIN][CONF_EMAIL],
-        hass.data[DOMAIN][CONF_PASSWORD],
-        hass.data[DOMAIN][CONF_ISSUE_TOKEN],
-        hass.data[DOMAIN][CONF_COOKIE],
-    )
+    api = hass.data[DOMAIN]['api']
 
     thermostats = []
     _LOGGER.info("Adding thermostats")
-    for thermostat in api.get_devices():
+    for thermostat in api['thermostats']:
         _LOGGER.info(f"Adding nest thermostat uuid: {thermostat}")
-        thermostats.append(NestClimate(thermostat, NestThermostatAPI(
-            hass.data[DOMAIN][CONF_EMAIL],
-            hass.data[DOMAIN][CONF_PASSWORD],
-            hass.data[DOMAIN][CONF_ISSUE_TOKEN],
-            hass.data[DOMAIN][CONF_COOKIE],
-            thermostat
-        )))
+        thermostats.append(NestClimate(thermostat, api))
 
     async_add_entities(thermostats)
 
@@ -103,27 +91,33 @@ class NestClimate(ClimateDevice):
 
         self.device = api
 
-        if self.device.can_heat and self.device.can_cool:
+        if self.device.device_data[device_id]['can_heat'] \
+                and self.device.device_data[device_id]['can_cool']:
             self._operation_list.append(HVAC_MODE_AUTO)
             self._support_flags |= SUPPORT_TARGET_TEMPERATURE_RANGE
 
         # Add supported nest thermostat features
-        if self.device.can_heat:
+        if self.device.device_data[device_id]['can_heat']:
             self._operation_list.append(HVAC_MODE_HEAT)
 
-        if self.device.can_cool:
+        if self.device.device_data[device_id]['can_cool']:
             self._operation_list.append(HVAC_MODE_COOL)
 
         self._operation_list.append(HVAC_MODE_OFF)
 
         # feature of device
-        if self.device.has_fan:
+        if self.device.device_data[device_id]['has_fan']:
             self._support_flags = self._support_flags | SUPPORT_FAN_MODE
 
     @property
     def unique_id(self):
         """Return an unique ID."""
         return self.device_id
+
+    @property
+    def name(self):
+        """Return an friendly name."""
+        return self.device.device_data[self.device_id]['name']
 
     @property
     def supported_features(self):
@@ -136,11 +130,6 @@ class NestClimate(ClimateDevice):
         return True
 
     @property
-    def name(self):
-        """Return the name of the climate device."""
-        return self.device_id
-
-    @property
     def temperature_unit(self):
         """Return the unit of measurement."""
         return self._unit_of_measurement
@@ -148,53 +137,63 @@ class NestClimate(ClimateDevice):
     @property
     def current_temperature(self):
         """Return the current temperature."""
-        return self.device.current_temperature
+        return self.device.device_data[self.device_id]['current_temperature']
 
     @property
     def current_humidity(self):
         """Return the current humidity."""
-        return self.device.current_humidity
+        return self.device.device_data[self.device_id]['current_humidity']
 
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        if self.device.mode not in (NEST_MODE_HEAT_COOL, NEST_MODE_ECO):
-            return self.device.target_temperature
+        if self.device.device_data[self.device_id]['mode'] \
+                != NEST_MODE_HEAT_COOL \
+                and not self.device.device_data[self.device_id]['eco']:
+            return \
+                self.device.device_data[self.device_id]['target_temperature']
         return None
 
     @property
     def target_temperature_high(self):
         """Return the highbound target temperature we try to reach."""
-        if self.device.mode == NEST_MODE_ECO:
-            # TODO: Grab properly
-            return None
-        if self.device.mode == NEST_MODE_HEAT_COOL:
-            return self.device.target_temperature_high
+        if self.device.device_data[self.device_id]['mode'] \
+                == NEST_MODE_HEAT_COOL \
+                and not self.device.device_data[self.device_id]['eco']:
+            return \
+                self.device. \
+                device_data[self.device_id]['target_temperature_high']
         return None
 
     @property
     def target_temperature_low(self):
         """Return the lowbound target temperature we try to reach."""
-        if self.device.mode == NEST_MODE_ECO:
-            # TODO: Grab properly
-            return None
-        if self.device.mode == NEST_MODE_HEAT_COOL:
-            return self.device.target_temperature_low
+        if self.device.device_data[self.device_id]['mode'] \
+                == NEST_MODE_HEAT_COOL \
+                and not self.device.device_data[self.device_id]['eco']:
+            return \
+                self.device. \
+                device_data[self.device_id]['target_temperature_low']
         return None
 
     @property
     def hvac_action(self):
         """Return current operation ie. heat, cool, idle."""
-        return ACTION_NEST_TO_HASS[self.device.get_action()]
+        return ACTION_NEST_TO_HASS[
+            self.device.device_data[self.device_id]['action']
+        ]
 
     @property
     def hvac_mode(self):
         """Return hvac target hvac state."""
-        if self.device.mode is None or self.device.mode == NEST_MODE_ECO:
+        if self.device.device_data[self.device_id]['mode'] is None \
+                or self.device.device_data[self.device_id]['eco']:
             # We assume the first operation in operation list is the main one
             return self._operation_list[0]
 
-        return MODE_NEST_TO_HASS[self.device.mode]
+        return MODE_NEST_TO_HASS[
+            self.device.device_data[self.device_id]['mode']
+        ]
 
     @property
     def hvac_modes(self):
@@ -204,7 +203,7 @@ class NestClimate(ClimateDevice):
     @property
     def preset_mode(self):
         """Return current preset mode."""
-        if self.device.mode == NEST_MODE_ECO:
+        if self.device.device_data[self.device_id]['eco']:
             return PRESET_ECO
 
         return PRESET_NONE
@@ -217,16 +216,19 @@ class NestClimate(ClimateDevice):
     @property
     def fan_mode(self):
         """Return whether the fan is on."""
-        if self.device.has_fan:
+        if self.device.device_data[self.device_id]['has_fan']:
             # Return whether the fan is on
-            return FAN_ON if self.device.fan else FAN_AUTO
+            if self.device.device_data[self.device_id]['fan']:
+                return FAN_ON
+            else:
+                return FAN_AUTO
         # No Fan available so disable slider
         return None
 
     @property
     def fan_modes(self):
         """Return the list of available fan modes."""
-        if self.device.has_fan:
+        if self.device.device_data[self.device_id]['has_fan']:
             return self._fan_modes
         return None
 
@@ -235,33 +237,52 @@ class NestClimate(ClimateDevice):
         temp = None
         target_temp_low = kwargs.get(ATTR_TARGET_TEMP_LOW)
         target_temp_high = kwargs.get(ATTR_TARGET_TEMP_HIGH)
-        if self.device.mode == NEST_MODE_HEAT_COOL:
+        if self.device.device_data[self.device_id]['mode'] == \
+                NEST_MODE_HEAT_COOL:
             if target_temp_low is not None and target_temp_high is not None:
-                self.device.set_temp(target_temp_low, target_temp_high)
+                self.device.thermostat_set_temperature(
+                    self.device_id,
+                    target_temp_low,
+                    target_temp_high,
+                )
         else:
             temp = kwargs.get(ATTR_TEMPERATURE)
             if temp is not None:
-                self.device.set_temp(temp)
+                self.device.thermostat_set_temperature(
+                    self.device_id,
+                    temp,
+                )
 
     def set_hvac_mode(self, hvac_mode):
         """Set operation mode."""
-        self.device.set_mode(MODE_HASS_TO_NEST[hvac_mode])
+        self.device.thermostat_set_mode(
+            self.device_id,
+            MODE_HASS_TO_NEST[hvac_mode],
+        )
 
     def set_fan_mode(self, fan_mode):
         """Turn fan on/off."""
-        if self.device.has_fan:
+        if self.device.device_data[self.device_id]['has_fan']:
             if fan_mode == "on":
-                self.device.set_fan(int(datetime.now().timestamp() + 60 * 30))
+                self.device.thermostat_set_fan(
+                    self.device_id,
+                    int(datetime.now().timestamp() + 60 * 30),
+                )
             else:
-                self.device.set_fan(0)
+                self.device.thermostat_set_fan(
+                    self.device_id,
+                    0,
+                )
 
     def set_preset_mode(self, preset_mode):
         """Set preset mode."""
-        need_eco = preset_mode in (PRESET_ECO)
-        is_eco = self.device.mode == NEST_MODE_ECO
+        need_eco = preset_mode == PRESET_ECO
 
-        if is_eco != need_eco:
-            self.device.set_eco_mode(need_eco)
+        if need_eco != self.device.device_data[self.device_id]['eco']:
+            self.device.thermostat_set_eco_mode(
+                self.device_id,
+                need_eco,
+            )
 
     def update(self):
         """Updates data"""
