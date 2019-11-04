@@ -201,11 +201,11 @@ class NestAPI():
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
             _LOGGER.error('Failed to update, trying again')
-            self.update()
+            self.update_camera(camera)
         except KeyError:
             _LOGGER.debug('Failed to update, trying to log in again')
             self.login()
-            self.update()
+            self.update_camera(camera)
 
     def update(self):
         try:
