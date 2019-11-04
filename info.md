@@ -1,6 +1,6 @@
 # badnest
 
-A bad Nest thermostat and camera integration that uses the web api to work after Works with Nest was shut down (bad Google, go sit in your corner and think about what you did)
+A bad Nest integration that uses the web api to work after Works with Nest was shut down (bad Google, go sit in your corner and think about what you did)
 
 ## Why is it bad?
 
