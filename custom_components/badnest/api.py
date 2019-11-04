@@ -54,6 +54,8 @@ class NestAPI():
         self.login()
         self._get_devices()
         self.update()
+        for camera in self.cameras:
+            self.update_camera(camera)
 
     def __getitem__(self, name):
         return getattr(self, name)
@@ -176,6 +178,35 @@ class NestAPI():
             self.login()
             return self.get_devices()
 
+    def update_camera(self, camera):
+        try:
+            r = self._session.get(
+                f"{API_URL}/dropcam/api/cameras/{camera}"
+            )
+            sensor_data = r.json()[0]
+            self.device_data[camera]['name'] = \
+                sensor_data["name"]
+            self.device_data[camera]['is_online'] = \
+                sensor_data["is_online"]
+            self.device_data[camera]['is_streaming'] = \
+                sensor_data["is_streaming"]
+            self.device_data[camera]['battery_voltage'] = \
+                sensor_data["rq_battery_battery_volt"]
+            self.device_data[camera]['ac_voltage'] = \
+                sensor_data["rq_battery_vbridge_volt"]
+            self.device_data[camera]['location'] = \
+                sensor_data["location"]
+            self.device_data[camera]['data_tier'] = \
+                sensor_data["properties"]["streaming.data-usage-tier"]
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error(e)
+            _LOGGER.error('Failed to update, trying again')
+            self.update()
+        except KeyError:
+            _LOGGER.debug('Failed to update, trying to log in again')
+            self.login()
+            self.update()
+
     def update(self):
         try:
             # To get friendly names
@@ -287,27 +318,6 @@ class NestAPI():
                         sensor_data['current_temperature']
                     self.device_data[sn]['battery_level'] = \
                         sensor_data['battery_level']
-
-            # Cameras
-            for camera in self.cameras:
-                r = self._session.get(
-                    f"{API_URL}/dropcam/api/cameras/{camera}"
-                )
-                sensor_data = r.json()[0]
-                self.device_data[camera]['name'] = \
-                    sensor_data["name"]
-                self.device_data[camera]['is_online'] = \
-                    sensor_data["is_online"]
-                self.device_data[camera]['is_streaming'] = \
-                    sensor_data["is_streaming"]
-                self.device_data[camera]['battery_voltage'] = \
-                    sensor_data["rq_battery_battery_volt"]
-                self.device_data[camera]['ac_voltage'] = \
-                    sensor_data["rq_battery_vbridge_volt"]
-                self.device_data[camera]['location'] = \
-                    sensor_data["location"]
-                self.device_data[camera]['data_tier'] = \
-                    sensor_data["properties"]["streaming.data-usage-tier"]
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
             _LOGGER.error('Failed to update, trying again')
