@@ -4,14 +4,24 @@ A bad Nest thermostat and camera integration that uses the web api to work after
 
 ## Why is it bad?
 
-This isn't an advertised or public API, it's still better than web scraping, but will never be as good as the original API
+This isn't an advertised or public API, it's still better than web scraping, but will never be as reliable as the original API
+
+## Features
+
+- Doesn't use the now defunct Works with Nest API
+- Works with migrated/new accounts via Google auth
+- Works with old via Nest auth
+- Nest Protect support
+- Nest Thermostat support
+- Nest Thermostat Sensor support
+- Nest Camera support
 
 ## Drawbacks
 
-- No proper error handling
 - Won't work with 2FA enabled accounts (Works with 2fa Google Accounts)
 - Tested with a single thermostat, I have no other devices to test with
 - Camera integration is untested by me
+- Nest Protect integration is untested by me
 - Nest could change their webapp api at any time, making this defunct
 
 ## Configuration
@@ -26,6 +36,7 @@ two-character country code, and it should work.
 badnest:
   email: email@domain.com
   password: !secret nest_password
+  region: us
 
 climate:
   - platform: badnest
@@ -33,7 +44,6 @@ climate:
 
 camera:
   - platform: badnest
-    region: us
 
 sensor:
   - platform: badnest
@@ -45,6 +55,7 @@ sensor:
 badnest:
   issue_token: "https://accounts.google.com/o/oauth2/iframerpc....."
   cookie: "OCAK=......"
+  region: us
 
 climate:
   - platform: badnest
@@ -52,7 +63,6 @@ climate:
 
 camera:
   - platform: badnest
-    region: us
 
 sensor:
   - platform: badnest
