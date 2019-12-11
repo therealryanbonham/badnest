@@ -163,6 +163,7 @@ class NestAPI():
                 elif bucket.startswith('device.'):
                     sn = bucket.replace('device.', '')
                     self.thermostats.append(sn)
+                    self.temperature_sensors.append(sn)
                     self.device_data[sn] = {}
 
             self.cameras = self._get_cameras()
@@ -209,7 +210,7 @@ class NestAPI():
             for bucket in r.json()["updated_buckets"]:
                 sensor_data = bucket["value"]
                 sn = bucket["object_key"].split('.')[1]
-                # Thermostats
+                # Thermostats (thermostat and sensors system)
                 if bucket["object_key"].startswith(
                         f"shared.{sn}"):
                     self.device_data[sn]['current_temperature'] = \
@@ -242,6 +243,14 @@ class NestAPI():
                     self.device_data[sn]['name'] = self._wheres[
                         sensor_data['where_id']
                     ]
+                    # When acts as a sensor
+                    if 'backplate_temperature' in sensor_data:
+                        self.device_data[sn]['temperature'] = \
+                            sensor_data['backplate_temperature']
+                    if 'battery_level' in sensor_data:
+                        self.device_data[sn]['battery_level'] = \
+                            sensor_data['battery_level']
+
                     if sensor_data.get('description', None):
                         self.device_data[sn]['name'] += \
                             f' ({sensor_data["description"]})'
