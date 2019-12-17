@@ -74,7 +74,6 @@ class NestAPI():
             self._login_google(self._issue_token, self._cookie)
         else:
             self._login_nest(self._email, self._password)
-        self._login_dropcam()
 
     def _login_nest(self, email, password):
         r = self._session.post(
@@ -110,20 +109,18 @@ class NestAPI():
         self._user_id = r.json()['claims']['subject']['nestId']['id']
         self._access_token = r.json()['jwt']
 
-    def _login_dropcam(self):
-        self._session.post(
-            f"{API_URL}/dropcam/api/login",
-            data={"access_token": self._access_token}
-        )
-
     def _get_cameras(self):
         cameras = []
 
         try:
-            r = self._session.get(
-                f"{CAMERA_WEBAPI_BASE}/api/cameras."
-                + "get_owned_and_member_of_with_properties"
-            )
+            headers = {
+                'User-Agent': USER_AGENT,
+                'X-Requested-With': 'XmlHttpRequest',
+                'Referer': 'https://home.nest.com/',
+                'cookie': f"user_token={self._access_token}"
+            }
+            r = self._session.get(url=f"{CAMERA_WEBAPI_BASE}/api/cameras."
+                + "get_owned_and_member_of_with_properties", headers=headers)
 
             for camera in r.json()["items"]:
                 cameras.append(camera['uuid'])
@@ -180,9 +177,13 @@ class NestAPI():
 
     def update_camera(self, camera):
         try:
-            r = self._session.get(
-                f"{API_URL}/dropcam/api/cameras/{camera}"
-            )
+            headers = {
+                'User-Agent': USER_AGENT,
+                'X-Requested-With': 'XmlHttpRequest',
+                'Referer': 'https://home.nest.com/',
+                'cookie': f"cztoken={self._access_token}"
+            }
+            r = self._session.get(url=f"{API_URL}/dropcam/api/cameras/{camera}", headers=headers)
             sensor_data = r.json()[0]
             self.device_data[camera]['name'] = \
                 sensor_data["name"]
@@ -459,9 +460,14 @@ class NestAPI():
             return
 
         try:
-            r = self._session.post(
-                f"{CAMERA_WEBAPI_BASE}/api/dropcams.set_properties",
-                data={property: value, "uuid": device_id},
+            headers = {
+                'User-Agent': USER_AGENT,
+                'X-Requested-With': 'XmlHttpRequest',
+                'Referer': 'https://home.nest.com/',
+                'cookie': f"user_token={self._access_token}"
+            }
+            r = self._session.get(url=f"{CAMERA_WEBAPI_BASE}/api/dropcams.set_properties",
+                data={property: value, "uuid": device_id}, headers=headers
             )
 
             return r.json()["items"]
@@ -479,24 +485,27 @@ class NestAPI():
         if device_id not in self.cameras:
             return
 
-        return self._set_properties(device_id, "streaming.enabled", "false")
+        return self._camera_set_properties(device_id, "streaming.enabled", "false")
 
     def camera_turn_on(self, device_id):
         if device_id not in self.cameras:
             return
 
-        return self._set_properties(device_id, "streaming.enabled", "true")
+        return self._camera_set_properties(device_id, "streaming.enabled", "true")
 
     def camera_get_image(self, device_id, now):
         if device_id not in self.cameras:
             return
 
         try:
-            r = self._session.get(
-                f'{self._camera_url}/get_image?uuid={device_id}' +
-                f'&cachebuster={now}'
-            )
-
+            headers = {
+                'User-Agent': USER_AGENT,
+                'X-Requested-With': 'XmlHttpRequest',
+                'Referer': 'https://home.nest.com/',
+                'cookie': f"user_token={self._access_token}"
+            }
+            r = self._session.get(url=f'{self._camera_url}/get_image?uuid={device_id}' +
+                f'&cachebuster={now}', headers=headers)
             return r.content
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
