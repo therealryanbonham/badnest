@@ -27,22 +27,20 @@ _LOGGER = logging.getLogger(__name__)
 
 class NestAPI():
     def __init__(self,
-                 email,
-                 password,
+                 user_id,
+                 access_token,
                  issue_token,
                  cookie,
                  region):
         self.device_data = {}
         self._wheres = {}
-        self._user_id = None
-        self._access_token = None
+        self._user_id = user_id
+        self._access_token = access_token
         self._session = requests.Session()
         self._session.headers.update({
             "Referer": "https://home.nest.com/",
             "User-Agent": USER_AGENT,
         })
-        self._email = email
-        self._password = password
         self._issue_token = issue_token
         self._cookie = cookie
         self._czfe_url = None
@@ -68,18 +66,9 @@ class NestAPI():
         return hasattr(self, name)
 
     def login(self):
-        if not self._email and not self._password:
+        if self._issue_token and self._cookie:
             self._login_google(self._issue_token, self._cookie)
-        else:
-            self._login_nest(self._email, self._password)
         self._login_dropcam()
-
-    def _login_nest(self, email, password):
-        r = self._session.post(
-            f"{API_URL}/session", json={"email": email, "password": password}
-        )
-        self._user_id = r.json()["userid"]
-        self._access_token = r.json()["access_token"]
 
     def _login_google(self, issue_token, cookie):
         headers = {
