@@ -82,3 +82,10 @@ The values of `"issue_token"` and `"cookie"` are specific to your Google Account
 8. In the 'Filter' box, enter `oauth2/iframe`
 9. Several network calls will appear in the Dev Tools window. Click on the last `iframe` call.
 10. In the Headers tab, under Request Headers, copy the entire `cookie` (beginning `OCAK=...` - **include the whole string which is several lines long and has many field/value pairs** - do not include the `cookie:` name). This is your `"cookie"` in `configuration.yaml`.
+
+## Notes
+
+The target temperature reported by the integration sometimes _seems_ to be slightly off by a few tens of a degree.
+This is caused by the fact that the Nest mobile app actually actually allows users to set the temperature in small
+increments, but the displayed temperature is rounded to the nearest 0.5 degree. In other words, the temperature
+displayed by the integration is correct, just _more exact_ than what is shown in the app.
