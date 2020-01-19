@@ -279,7 +279,7 @@ class NestClimate(ClimateDevice):
 
     def set_humidity(self, humidity):
         """Set new target humidity."""
-        humidity -= humidity % ROUND_TARGET_HUMIDITY_TO_NEAREST
+        humidity = int(round(float(humidity) / ROUND_TARGET_HUMIDITY_TO_NEAREST) * ROUND_TARGET_HUMIDITY_TO_NEAREST)
         if humidity < NEST_HUMIDITY_MIN:
             humidity = NEST_HUMIDITY_MIN
         if humidity > NEST_HUMIDITY_MAX:
