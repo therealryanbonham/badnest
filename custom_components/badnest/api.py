@@ -387,11 +387,11 @@ class NestAPI():
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
             _LOGGER.error('Failed to set humidity, trying again')
-            self.thermostat_set_target_humidity(device_id, mode)
+            self.thermostat_set_target_humidity(device_id, humidity)
         except KeyError:
             _LOGGER.debug('Failed to set humidity, trying to log in again')
             self.login()
-            self.thermostat_set_target_humidity(device_id, mode)
+            self.thermostat_set_target_humidity(device_id, humidity)
 
     def thermostat_set_mode(self, device_id, mode):
         if device_id not in self.thermostats:
