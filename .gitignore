@@ -99,3 +99,6 @@ climate.py
 const.py
 manifest.json
 sensor.py
+
+venv/
+.mypy_cache/
