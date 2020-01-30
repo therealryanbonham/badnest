@@ -18,7 +18,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Required(CONF_ISSUE_TOKEN, default=""): cv.string,
                 vol.Required(CONF_COOKIE, default=""): cv.string,
                 vol.Optional(CONF_REGION, default="us"): cv.string,
-            }
+            },
         )
     },
     extra=vol.ALLOW_EXTRA,
@@ -41,13 +41,7 @@ def setup(hass, config):
         region = None
 
     hass.data[DOMAIN] = {
-        'api': NestAPI(
-            email,
-            password,
-            issue_token,
-            cookie,
-            region,
-        ),
+        "api": NestAPI(email, password, issue_token, cookie, region,),
     }
 
     return True
