@@ -7,28 +7,21 @@ from .const import DOMAIN
 from homeassistant.const import (
     ATTR_BATTERY_LEVEL,
     DEVICE_CLASS_TEMPERATURE,
-    TEMP_CELSIUS
+    TEMP_CELSIUS,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-PROTECT_SENSOR_TYPES = [
-    "co_status",
-    "smoke_status",
-    "battery_health_state"
-]
+PROTECT_SENSOR_TYPES = ["co_status", "smoke_status", "battery_health_state"]
 
 
-async def async_setup_platform(hass,
-                               config,
-                               async_add_entities,
-                               discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Nest climate device."""
-    api = hass.data[DOMAIN]['api']
+    api = hass.data[DOMAIN]["api"]
 
     temperature_sensors = []
     _LOGGER.info("Adding temperature sensors")
-    for sensor in api['temperature_sensors']:
+    for sensor in api["temperature_sensors"]:
         _LOGGER.info(f"Adding nest temp sensor uuid: {sensor}")
         temperature_sensors.append(NestTemperatureSensor(sensor, api))
 
@@ -36,7 +29,7 @@ async def async_setup_platform(hass,
 
     protect_sensors = []
     _LOGGER.info("Adding protect sensors")
-    for sensor in api['protects']:
+    for sensor in api["protects"]:
         _LOGGER.info(f"Adding nest protect sensor uuid: {sensor}")
         for sensor_type in PROTECT_SENSOR_TYPES:
             protect_sensors.append(NestProtectSensor(sensor, sensor_type, api))
@@ -62,12 +55,12 @@ class NestTemperatureSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return self.device.device_data[self.device_id]['name']
+        return self.device.device_data[self.device_id]["name"]
 
     @property
     def state(self):
         """Return the state of the sensor."""
-        return self.device.device_data[self.device_id]['temperature']
+        return self.device.device_data[self.device_id]["temperature"]
 
     @property
     def device_class(self):
@@ -87,8 +80,7 @@ class NestTemperatureSensor(Entity):
     def device_state_attributes(self):
         """Return the state attributes."""
         return {
-            ATTR_BATTERY_LEVEL:
-                self.device.device_data[self.device_id]['battery_level']
+            ATTR_BATTERY_LEVEL: self.device.device_data[self.device_id]["battery_level"]
         }
 
 
@@ -105,13 +97,12 @@ class NestProtectSensor(Entity):
     @property
     def unique_id(self):
         """Return an unique ID."""
-        return self.device_id + '_' + self._sensor_type
+        return self.device_id + "_" + self._sensor_type
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return self.device.device_data[self.device_id]['name'] + \
-            f' {self._sensor_type}'
+        return self.device.device_data[self.device_id]["name"] + f" {self._sensor_type}"
 
     @property
     def state(self):

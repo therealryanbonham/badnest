@@ -8,23 +8,18 @@ from homeassistant.components.camera import (
 )
 from homeassistant.util.dt import utcnow
 
-from .const import (
-    DOMAIN
-)
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_platform(hass,
-                               config,
-                               async_add_entities,
-                               discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up a Nest Camera."""
-    api = hass.data[DOMAIN]['api']
+    api = hass.data[DOMAIN]["api"]
 
     cameras = []
     _LOGGER.info("Adding temperature sensors")
-    for camera in api['cameras']:
+    for camera in api["cameras"]:
         _LOGGER.info(f"Adding nest camera uuid: {camera}")
         cameras.append(NestCamera(camera, api))
 
@@ -48,7 +43,7 @@ class NestCamera(Camera):
         """Return information about the device."""
         return {
             "identifiers": {(DOMAIN, self._uuid)},
-            "name": self._device.device_data[self._uuid]['name'],
+            "name": self._device.device_data[self._uuid]["name"],
             "manufacturer": "Nest Labs",
             "model": "Camera",
         }
@@ -65,13 +60,13 @@ class NestCamera(Camera):
     @property
     def is_on(self):
         """Return true if on."""
-        return self._device.device_data[self._uuid]['is_online']
+        return self._device.device_data[self._uuid]["is_online"]
 
     @property
     def is_recording(self):
         return True
         """Return true if the device is recording."""
-        return self._device.device_data[self._uuid]['is_streaming']
+        return self._device.device_data[self._uuid]["is_streaming"]
 
     def turn_off(self):
         self._device.camera_turn_off(self._uuid)
@@ -93,7 +88,7 @@ class NestCamera(Camera):
     @property
     def name(self):
         """Return the name of this camera."""
-        return self._device.device_data[self._uuid]['name']
+        return self._device.device_data[self._uuid]["name"]
 
     def _ready_for_snapshot(self, now):
         return self._next_snapshot_at is None or now > self._next_snapshot_at
