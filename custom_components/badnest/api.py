@@ -211,6 +211,11 @@ class NestAPI:
             _LOGGER.debug('Failed to update, trying to log in again')
             self.login()
             self.update_camera(camera)
+        except IndexError:
+            _LOGGER.error('Invalid Response:'+ r.text())
+            _LOGGER.error('Failed to update, trying again')
+            self.login()
+            self.update_camera(camera)
 
     def update(self):
         try:
