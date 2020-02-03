@@ -2,7 +2,7 @@
 
 A bad Nest integration that uses the web api to work after Works with Nest was shut down (bad Google, go sit in your corner and think about what you did)
 
-## Why is it bad?
+## Why is it bad
 
 This isn't an advertised or public API, it's still better than web scraping, but will never be as reliable as the original API
 
@@ -10,7 +10,6 @@ This isn't an advertised or public API, it's still better than web scraping, but
 
 - Doesn't use the now defunct Works with Nest API
 - Works with migrated/new accounts via Google auth
-- Works with old via Nest auth
 - Nest Protect support
 - Nest Thermostat support
 - Nest Thermostat Sensor support
@@ -18,11 +17,10 @@ This isn't an advertised or public API, it's still better than web scraping, but
 
 ## Drawbacks
 
-- Won't work with 2FA enabled accounts (Works with 2fa Google Accounts)
 - Tested with a single thermostat, I have no other devices to test with
 - Camera integration is untested by me
 - Nest Protect integration is untested by me
-- Nest could change their webapp api at any time, making this defunct
+- Nest could change their webapp api at any time, making this defunct (this has happened before, see <https://github.com/USA-RedDragon/badnest/issues/67>)
 
 ## Configuration
 
@@ -36,7 +34,7 @@ Google recently introduced reCAPTCHA when logging to Nest. That means username
 and password cannot be used directly any more. Instead, you have to obtain
 `user_id` and `access_token` for your account by logging in manually. To do that,
 open developer tools in your browser, switch to the "Network" tab, log in to Nest
-and look for the request similar to https://home.nest.com/session?_=1578693398448.
+and look for the request similar to `https://home.nest.com/session?_=1578693398448`.
 You will find `user_id` and `access_token` in the response to the request.
 
 ```yaml
