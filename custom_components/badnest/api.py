@@ -166,6 +166,17 @@ class NestAPI():
             self.login()
             return self.get_devices()
 
+
+    def _map_nest_protect_state(self, value):
+        if value == 0:
+            return "Ok"
+        elif value == 1 or value == 2:
+            return "Warning"
+        elif value == 3:
+            return "Emergency"
+        else:
+            return "Unknown"
+
     def update(self):
         try:
             # To get friendly names
@@ -270,11 +281,11 @@ class NestAPI():
                             f' ({sensor_data["description"]})'
                     self.device_data[sn]['name'] += ' Protect'
                     self.device_data[sn]['co_status'] = \
-                        sensor_data['co_status']
+                        self._map_nest_protect_state(sensor_data['co_status'])
                     self.device_data[sn]['smoke_status'] = \
-                        sensor_data['smoke_status']
+                        self._map_nest_protect_state(sensor_data['smoke_status'])
                     self.device_data[sn]['battery_health_state'] = \
-                        sensor_data['battery_health_state']
+                        self._map_nest_protect_state(sensor_data['battery_health_state'])
                 # Temperature sensors
                 elif bucket["object_key"].startswith(
                         f"kryptonite.{sn}"):
