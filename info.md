@@ -32,10 +32,17 @@ two-character country code, and it should work.
 
 ### Example configuration.yaml - When you're not using the Google Auth Login
 
+Google recently introduced reCAPTCHA when logging to Nest. That means username
+and password cannot be used directly any more. Instead, you have to obtain
+`user_id` and `access_token` for your account by logging in manually. To do that,
+open developer tools in your browser, switch to the "Network" tab, log in to Nest
+and look for the request similar to https://home.nest.com/session?_=1578693398448.
+You will find `user_id` and `access_token` in the response to the request.
+
 ```yaml
 badnest:
-  email: email@domain.com
-  password: !secret nest_password
+  user_id: 11111
+  access_token: !secret nest_access_token
   region: us
 
 climate:
