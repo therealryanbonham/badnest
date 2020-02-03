@@ -261,6 +261,10 @@ class NestAPI():
                         sensor_data["fan_timer_timeout"]
                     self.device_data[sn]['current_humidity'] = \
                         sensor_data["current_humidity"]
+                    self.device_data[sn]['target_humidity'] = \
+                        sensor_data["target_humidity"]
+                    self.device_data[sn]['target_humidity_enabled'] = \
+                        sensor_data["target_humidity_enabled"]
                     if sensor_data["eco"]["mode"] == 'manual-eco' or \
                             sensor_data["eco"]["mode"] == 'auto-eco':
                         self.device_data[sn]['eco'] = True
@@ -370,6 +374,33 @@ class NestAPI():
             _LOGGER.debug('Failed to set temperature, trying to log in again')
             self.login()
             self.thermostat_set_temperature(device_id, temp, temp_high)
+
+    def thermostat_set_target_humidity(self, device_id, humidity):
+        if device_id not in self.thermostats:
+            return
+
+        try:
+            self._session.post(
+                f"{self._czfe_url}/v5/put",
+                json={
+                    "objects": [
+                        {
+                            "object_key": f'device.{device_id}',
+                            "op": "MERGE",
+                            "value": {"target_humidity": humidity},
+                        }
+                    ]
+                },
+                headers={"Authorization": f"Basic {self._access_token}"},
+            )
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error(e)
+            _LOGGER.error('Failed to set humidity, trying again')
+            self.thermostat_set_target_humidity(device_id, humidity)
+        except KeyError:
+            _LOGGER.debug('Failed to set humidity, trying to log in again')
+            self.login()
+            self.thermostat_set_target_humidity(device_id, humidity)
 
     def thermostat_set_mode(self, device_id, mode):
         if device_id not in self.thermostats:
