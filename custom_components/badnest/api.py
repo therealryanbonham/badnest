@@ -161,11 +161,11 @@ class NestAPI():
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
             _LOGGER.error("Failed to get devices, trying again")
-            return self.get_devices()
+            return self._get_devices()
         except KeyError:
             _LOGGER.debug("Failed to get devices, trying to log in again")
             self.login()
-            return self.get_devices()
+            return self._get_devices()
 
 
     def _map_nest_protect_state(self, value):
