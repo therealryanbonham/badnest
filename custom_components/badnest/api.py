@@ -75,7 +75,6 @@ class NestAPI():
     def login(self):
         if self._issue_token and self._cookie:
             self._login_google(self._issue_token, self._cookie)
-        self._login_dropcam()
 
     def _login_google(self, issue_token, cookie):
         headers = {
