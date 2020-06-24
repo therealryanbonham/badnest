@@ -1,6 +1,8 @@
 import logging
-
 import requests
+import simplejson
+
+from time import sleep
 
 API_URL = "https://home.nest.com"
 CAMERA_WEBAPI_BASE = "https://webapi.camera.home.nest.com"
@@ -201,6 +203,17 @@ class NestAPI():
                 sensor_data["location"]
             self.device_data[camera]['data_tier'] = \
                 sensor_data["properties"]["streaming.data-usage-tier"]
+        except simplejson.errors.JSONDecodeError as e:
+            _LOGGER.error(e)
+            if r.status_code != 200 and r.status_code != 502:
+                _LOGGER.error('Information for further debugging: ' +
+                             'return code {} '.format(r.status_code) +
+                             'and returned text {}'.format(r.text))
+
+            if r.status_code == 502:
+                _LOGGER.error('Error 502, Failed to update, retrying in 30s')
+                sleep(30)
+                self.update_camera(camera)
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
             _LOGGER.error('Failed to update, trying again')
@@ -334,10 +347,23 @@ class NestAPI():
                         sensor_data['current_temperature']
                     self.device_data[sn]['battery_level'] = \
                         sensor_data['battery_level']
+        except simplejson.errors.JSONDecodeError as e:
+            _LOGGER.error(e)
+            if r.status_code != 200 and r.status_code != 502:
+                _LOGGER.error('Information for further debugging: ' +
+                             'return code {} '.format(r.status_code) +
+                             'and returned text {}'.format(r.text))
+
+            if r.status_code == 502:
+                _LOGGER.error('Error 502, Failed to update, retrying in 30s')
+                sleep(30)
+                self.update()
+        
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
-            _LOGGER.error("Failed to update, trying again")
+            _LOGGER.error('Failed to update, trying again')
             self.update()
+            
         except KeyError:
             _LOGGER.debug("Failed to update, trying to log in again")
             self.login()
