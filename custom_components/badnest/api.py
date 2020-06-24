@@ -28,18 +28,22 @@ _LOGGER = logging.getLogger(__name__)
 # _LOGGER.setLevel(logging.DEBUG)
 
 
-class NestAPI:
-    def __init__(self, email, password, issue_token, cookie, region):
+class NestAPI():
+    def __init__(self,
+                 user_id,
+                 access_token,
+                 issue_token,
+                 cookie,
+                 region):
         self.device_data = {}
         self._wheres = {}
-        self._user_id = None
-        self._access_token = None
+        self._user_id = user_id
+        self._access_token = access_token
         self._session = requests.Session()
-        self._session.headers.update(
-            {"Referer": "https://home.nest.com/", "User-Agent": USER_AGENT,}
-        )
-        self._email = email
-        self._password = password
+        self._session.headers.update({
+            "Referer": "https://home.nest.com/",
+            "User-Agent": USER_AGENT,
+        })
         self._issue_token = issue_token
         self._cookie = cookie
         self._czfe_url = None
@@ -67,17 +71,9 @@ class NestAPI:
         return hasattr(self, name)
 
     def login(self):
-        if not self._email and not self._password:
+        if self._issue_token and self._cookie:
             self._login_google(self._issue_token, self._cookie)
-        else:
-            self._login_nest(self._email, self._password)
-
-    def _login_nest(self, email, password):
-        r = self._session.post(
-            f"{API_URL}/session", json={"email": email, "password": password}
-        )
-        self._user_id = r.json()["userid"]
-        self._access_token = r.json()["access_token"]
+        self._login_dropcam()
 
     def _login_google(self, issue_token, cookie):
         headers = {
@@ -156,6 +152,7 @@ class NestAPI:
                 elif bucket.startswith("device."):
                     sn = bucket.replace("device.", "")
                     self.thermostats.append(sn)
+                    self.temperature_sensors.append(sn)
                     self.device_data[sn] = {}
 
             self.cameras = self._get_cameras()
@@ -169,7 +166,8 @@ class NestAPI:
             self.login()
             return self.get_devices()
 
-    def _map_state(self, value):
+
+    def _map_nest_protect_state(self, value):
         if value == 0:
             return "Ok"
         elif value == 1 or value == 2:
@@ -239,80 +237,84 @@ class NestAPI:
             )
 
             for bucket in r.json()["updated_buckets"]:
-                # print("\n\n\n------- Sensor Data ------\n")
                 sensor_data = bucket["value"]
-                # print(sensor_data)
-                # print("\n\n\n------- Object key ------\n")
-                # print(bucket["object_key"])
-                # print("\n\n\n------- SN ------\n")
-                sn = bucket["object_key"].split(".")[1]
-                # print(sn)
-                # Thermostats
-                if bucket["object_key"].startswith(f"shared.{sn}"):
-                    self.device_data[sn]["current_temperature"] = sensor_data[
-                        "current_temperature"
-                    ]
-                    self.device_data[sn]["target_temperature"] = sensor_data[
-                        "target_temperature"
-                    ]
-                    self.device_data[sn]["hvac_ac_state"] = sensor_data["hvac_ac_state"]
-                    self.device_data[sn]["hvac_heater_state"] = sensor_data[
-                        "hvac_heater_state"
-                    ]
-                    self.device_data[sn]["target_temperature_high"] = sensor_data[
-                        "target_temperature_high"
-                    ]
-                    self.device_data[sn]["target_temperature_low"] = sensor_data[
-                        "target_temperature_low"
-                    ]
-                    self.device_data[sn]["can_heat"] = sensor_data["can_heat"]
-                    self.device_data[sn]["can_cool"] = sensor_data["can_cool"]
-                    self.device_data[sn]["mode"] = sensor_data[
-                        "target_temperature_type"
-                    ]
-                    if self.device_data[sn]["hvac_ac_state"]:
-                        self.device_data[sn]["action"] = "cooling"
-                    elif self.device_data[sn]["hvac_heater_state"]:
-                        self.device_data[sn]["action"] = "heating"
+                sn = bucket["object_key"].split('.')[1]
+                # Thermostats (thermostat and sensors system)
+                if bucket["object_key"].startswith(
+                        f"shared.{sn}"):
+                    self.device_data[sn]['current_temperature'] = \
+                        sensor_data["current_temperature"]
+                    self.device_data[sn]['target_temperature'] = \
+                        sensor_data["target_temperature"]
+                    self.device_data[sn]['hvac_ac_state'] = \
+                        sensor_data["hvac_ac_state"]
+                    self.device_data[sn]['hvac_heater_state'] = \
+                        sensor_data["hvac_heater_state"]
+                    self.device_data[sn]['target_temperature_high'] = \
+                        sensor_data["target_temperature_high"]
+                    self.device_data[sn]['target_temperature_low'] = \
+                        sensor_data["target_temperature_low"]
+                    self.device_data[sn]['can_heat'] = \
+                        sensor_data["can_heat"]
+                    self.device_data[sn]['can_cool'] = \
+                        sensor_data["can_cool"]
+                    self.device_data[sn]['mode'] = \
+                        sensor_data["target_temperature_type"]
+                    if self.device_data[sn]['hvac_ac_state']:
+                        self.device_data[sn]['action'] = "cooling"
+                    elif self.device_data[sn]['hvac_heater_state']:
+                        self.device_data[sn]['action'] = "heating"
                     else:
-                        self.device_data[sn]["action"] = "off"
+                        self.device_data[sn]['action'] = "off"
                 # Thermostats, pt 2
-                elif bucket["object_key"].startswith(f"device.{sn}"):
-                    self.device_data[sn]["name"] = self._wheres[sensor_data["where_id"]]
-                    if sensor_data.get("description", None):
-                        self.device_data[sn][
-                            "name"
-                        ] += f' ({sensor_data["description"]})'
-                    self.device_data[sn]["name"] += " Thermostat"
-                    self.device_data[sn]["has_fan"] = sensor_data["has_fan"]
-                    self.device_data[sn]["fan"] = sensor_data["fan_timer_timeout"]
-                    self.device_data[sn]["current_humidity"] = sensor_data[
-                        "current_humidity"
+                elif bucket["object_key"].startswith(
+                        f"device.{sn}"):
+                    self.device_data[sn]['name'] = self._wheres[
+                        sensor_data['where_id']
                     ]
-                    if (
-                        sensor_data["eco"]["mode"] == "manual-eco"
-                        or sensor_data["eco"]["mode"] == "auto-eco"
-                    ):
-                        self.device_data[sn]["eco"] = True
+                    # When acts as a sensor
+                    if 'backplate_temperature' in sensor_data:
+                        self.device_data[sn]['temperature'] = \
+                            sensor_data['backplate_temperature']
+                    if 'battery_level' in sensor_data:
+                        self.device_data[sn]['battery_level'] = \
+                            sensor_data['battery_level']
+
+                    if sensor_data.get('description', None):
+                        self.device_data[sn]['name'] += \
+                            f' ({sensor_data["description"]})'
+                    self.device_data[sn]['name'] += ' Thermostat'
+                    self.device_data[sn]['has_fan'] = \
+                        sensor_data["has_fan"]
+                    self.device_data[sn]['fan'] = \
+                        sensor_data["fan_timer_timeout"]
+                    self.device_data[sn]['current_humidity'] = \
+                        sensor_data["current_humidity"]
+                    self.device_data[sn]['target_humidity'] = \
+                        sensor_data["target_humidity"]
+                    self.device_data[sn]['target_humidity_enabled'] = \
+                        sensor_data["target_humidity_enabled"]
+                    if sensor_data["eco"]["mode"] == 'manual-eco' or \
+                            sensor_data["eco"]["mode"] == 'auto-eco':
+                        self.device_data[sn]['eco'] = True
                     else:
-                        self.device_data[sn]["eco"] = False
+                        self.device_data[sn]['eco'] = False
                 # Protect
-                elif bucket["object_key"].startswith(f"topaz.{sn}"):
-                    self.device_data[sn]["name"] = self._wheres[sensor_data["where_id"]]
-                    if sensor_data.get("description", None):
-                        self.device_data[sn][
-                            "name"
-                        ] += f' ({sensor_data["description"]})'
-                    self.device_data[sn]["name"] += " Protect"
-                    self.device_data[sn]["co_status"] = self._map_state(
-                        sensor_data["co_status"]
-                    )
-                    self.device_data[sn]["smoke_status"] = self._map_state(
-                        sensor_data["smoke_status"]
-                    )
-                    self.device_data[sn]["battery_health_state"] = self._map_state(
-                        sensor_data["battery_health_state"]
-                    )
+                elif bucket["object_key"].startswith(
+                        f"topaz.{sn}"):
+                    self.device_data[sn]['name'] = self._wheres[
+                        sensor_data['where_id']
+                    ]
+                    if sensor_data.get('description', None):
+                        self.device_data[sn]['name'] += \
+                            f' ({sensor_data["description"]})'
+                    self.device_data[sn]['name'] += ' Protect'
+                    self.device_data[sn]['co_status'] = \
+                        self._map_nest_protect_state(sensor_data['co_status'])
+                    self.device_data[sn]['smoke_status'] = \
+                        self._map_nest_protect_state(sensor_data['smoke_status'])
+                    self.device_data[sn]['battery_health_state'] = \
+                        self._map_nest_protect_state(sensor_data['battery_health_state'])
                 # Temperature sensors
                 elif bucket["object_key"].startswith(f"kryptonite.{sn}"):
                     self.device_data[sn]["name"] = self._wheres[sensor_data["where_id"]]
@@ -385,6 +387,33 @@ class NestAPI:
             _LOGGER.debug("Failed to set temperature, trying to log in again")
             self.login()
             self.thermostat_set_temperature(device_id, temp, temp_high)
+
+    def thermostat_set_target_humidity(self, device_id, humidity):
+        if device_id not in self.thermostats:
+            return
+
+        try:
+            self._session.post(
+                f"{self._czfe_url}/v5/put",
+                json={
+                    "objects": [
+                        {
+                            "object_key": f'device.{device_id}',
+                            "op": "MERGE",
+                            "value": {"target_humidity": humidity},
+                        }
+                    ]
+                },
+                headers={"Authorization": f"Basic {self._access_token}"},
+            )
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error(e)
+            _LOGGER.error('Failed to set humidity, trying again')
+            self.thermostat_set_target_humidity(device_id, humidity)
+        except KeyError:
+            _LOGGER.debug('Failed to set humidity, trying to log in again')
+            self.login()
+            self.thermostat_set_target_humidity(device_id, humidity)
 
     def thermostat_set_mode(self, device_id, mode):
         if device_id not in self.thermostats:
