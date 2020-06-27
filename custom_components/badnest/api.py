@@ -187,40 +187,39 @@ class NestAPI():
                 'cookie': f"cztoken={self._access_token}"
             }
             r = self._session.get(url=f"{API_URL}/dropcam/api/cameras/{camera}", headers=headers)
-            sensor_data = r.json()[0]
-            self.device_data[camera]['name'] = \
-                sensor_data["name"]
-            self.device_data[camera]['is_online'] = \
-                sensor_data["is_online"]
-            self.device_data[camera]['is_streaming'] = \
-                sensor_data["is_streaming"]
-            self.device_data[camera]['battery_voltage'] = \
-                sensor_data["rq_battery_battery_volt"]
-            self.device_data[camera]['ac_voltage'] = \
-                sensor_data["rq_battery_vbridge_volt"]
-            self.device_data[camera]['location'] = \
-                sensor_data["location"]
-            self.device_data[camera]['data_tier'] = \
-                sensor_data["properties"]["streaming.data-usage-tier"]
+            if r.status_code == 200:
+                sensor_data = r.json()[0]
+                self.device_data[camera]['name'] = \
+                    sensor_data["name"]
+                self.device_data[camera]['is_online'] = \
+                    sensor_data["is_online"]
+                self.device_data[camera]['is_streaming'] = \
+                    sensor_data["is_streaming"]
+                self.device_data[camera]['battery_voltage'] = \
+                    sensor_data["rq_battery_battery_volt"]
+                self.device_data[camera]['ac_voltage'] = \
+                    sensor_data["rq_battery_vbridge_volt"]
+                self.device_data[camera]['location'] = \
+                    sensor_data["location"]
+                self.device_data[camera]['data_tier'] = \
+                    sensor_data["properties"]["streaming.data-usage-tier"]
+            else if r.status_code != 200 and r.status_code != 502:
+                _LOGGER.error('Camera Update Error: Information for further debugging: ' +
+                                'return code {} '.format(r.status_code) +
+                                'and returned text {}'.format(r.text))
+            else r.status_code == 502:
+                _LOGGER.error('Camera Update Error: 502.')
         except simplejson.errors.JSONDecodeError as e:
-            _LOGGER.error(e)
-            if r.status_code != 200 and r.status_code != 502:
-                _LOGGER.error('Information for further debugging: ' +
-                             'return code {} '.format(r.status_code) +
-                             'and returned text {}'.format(r.text))
-
-            if r.status_code == 502:
-                _LOGGER.error('Error 502, Failed to update, retrying in 30s')
-                sleep(30)
-                self.update_camera(camera)
+            _LOGGER.error('Camera Update: JsonDecodeError: ' +
+                            'return code {} '.format(r.status_code) +
+                            'and returned text {}'.format(r.text))
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
-            _LOGGER.error('Failed to update, trying again')
-            self.update_camera(camera)
+            _LOGGER.error('Camera Update: Failed to update.')
+
         except KeyError:
-            _LOGGER.debug('Failed to update, trying to log in again')
+            _LOGGER.debug('Camera Update: Failed to update KeyError')
             self.login()
-            self.update_camera(camera)
 
     def update(self):
         try:
@@ -247,124 +246,121 @@ class NestAPI():
                 },
                 headers={"Authorization": f"Basic {self._access_token}"},
             )
+            if r.status_code == 200:
+                for bucket in r.json()["updated_buckets"]:
+                    sensor_data = bucket["value"]
+                    sn = bucket["object_key"].split('.')[1]
+                    # Thermostats (thermostat and sensors system)
+                    if bucket["object_key"].startswith(
+                            f"shared.{sn}"):
+                        self.device_data[sn]['current_temperature'] = \
+                            sensor_data["current_temperature"]
+                        self.device_data[sn]['target_temperature'] = \
+                            sensor_data["target_temperature"]
+                        self.device_data[sn]['hvac_ac_state'] = \
+                            sensor_data["hvac_ac_state"]
+                        self.device_data[sn]['hvac_heater_state'] = \
+                            sensor_data["hvac_heater_state"]
+                        self.device_data[sn]['target_temperature_high'] = \
+                            sensor_data["target_temperature_high"]
+                        self.device_data[sn]['target_temperature_low'] = \
+                            sensor_data["target_temperature_low"]
+                        self.device_data[sn]['can_heat'] = \
+                            sensor_data["can_heat"]
+                        self.device_data[sn]['can_cool'] = \
+                            sensor_data["can_cool"]
+                        self.device_data[sn]['mode'] = \
+                            sensor_data["target_temperature_type"]
+                        if self.device_data[sn]['hvac_ac_state']:
+                            self.device_data[sn]['action'] = "cooling"
+                        elif self.device_data[sn]['hvac_heater_state']:
+                            self.device_data[sn]['action'] = "heating"
+                        else:
+                            self.device_data[sn]['action'] = "off"
+                    # Thermostats, pt 2
+                    elif bucket["object_key"].startswith(
+                            f"device.{sn}"):
+                        self.device_data[sn]['name'] = self._wheres[
+                            sensor_data['where_id']
+                        ]
+                        # When acts as a sensor
+                        if 'backplate_temperature' in sensor_data:
+                            self.device_data[sn]['temperature'] = \
+                                sensor_data['backplate_temperature']
+                        if 'battery_level' in sensor_data:
+                            self.device_data[sn]['battery_level'] = \
+                                sensor_data['battery_level']
 
-            for bucket in r.json()["updated_buckets"]:
-                sensor_data = bucket["value"]
-                sn = bucket["object_key"].split('.')[1]
-                # Thermostats (thermostat and sensors system)
-                if bucket["object_key"].startswith(
-                        f"shared.{sn}"):
-                    self.device_data[sn]['current_temperature'] = \
-                        sensor_data["current_temperature"]
-                    self.device_data[sn]['target_temperature'] = \
-                        sensor_data["target_temperature"]
-                    self.device_data[sn]['hvac_ac_state'] = \
-                        sensor_data["hvac_ac_state"]
-                    self.device_data[sn]['hvac_heater_state'] = \
-                        sensor_data["hvac_heater_state"]
-                    self.device_data[sn]['target_temperature_high'] = \
-                        sensor_data["target_temperature_high"]
-                    self.device_data[sn]['target_temperature_low'] = \
-                        sensor_data["target_temperature_low"]
-                    self.device_data[sn]['can_heat'] = \
-                        sensor_data["can_heat"]
-                    self.device_data[sn]['can_cool'] = \
-                        sensor_data["can_cool"]
-                    self.device_data[sn]['mode'] = \
-                        sensor_data["target_temperature_type"]
-                    if self.device_data[sn]['hvac_ac_state']:
-                        self.device_data[sn]['action'] = "cooling"
-                    elif self.device_data[sn]['hvac_heater_state']:
-                        self.device_data[sn]['action'] = "heating"
-                    else:
-                        self.device_data[sn]['action'] = "off"
-                # Thermostats, pt 2
-                elif bucket["object_key"].startswith(
-                        f"device.{sn}"):
-                    self.device_data[sn]['name'] = self._wheres[
-                        sensor_data['where_id']
-                    ]
-                    # When acts as a sensor
-                    if 'backplate_temperature' in sensor_data:
+                        if sensor_data.get('description', None):
+                            self.device_data[sn]['name'] += \
+                                f' ({sensor_data["description"]})'
+                        self.device_data[sn]['name'] += ' Thermostat'
+                        self.device_data[sn]['has_fan'] = \
+                            sensor_data["has_fan"]
+                        self.device_data[sn]['fan'] = \
+                            sensor_data["fan_timer_timeout"]
+                        self.device_data[sn]['current_humidity'] = \
+                            sensor_data["current_humidity"]
+                        self.device_data[sn]['target_humidity'] = \
+                            sensor_data["target_humidity"]
+                        self.device_data[sn]['target_humidity_enabled'] = \
+                            sensor_data["target_humidity_enabled"]
+                        if sensor_data["eco"]["mode"] == 'manual-eco' or \
+                                sensor_data["eco"]["mode"] == 'auto-eco':
+                            self.device_data[sn]['eco'] = True
+                        else:
+                            self.device_data[sn]['eco'] = False
+                    # Protect
+                    elif bucket["object_key"].startswith(
+                            f"topaz.{sn}"):
+                        self.device_data[sn]['name'] = self._wheres[
+                            sensor_data['where_id']
+                        ]
+                        if sensor_data.get('description', None):
+                            self.device_data[sn]['name'] += \
+                                f' ({sensor_data["description"]})'
+                        self.device_data[sn]['name'] += ' Protect'
+                        self.device_data[sn]['co_status'] = \
+                            self._map_nest_protect_state(sensor_data['co_status'])
+                        self.device_data[sn]['smoke_status'] = \
+                            self._map_nest_protect_state(sensor_data['smoke_status'])
+                        self.device_data[sn]['battery_health_state'] = \
+                            self._map_nest_protect_state(sensor_data['battery_health_state'])
+                    # Temperature sensors
+                    elif bucket["object_key"].startswith(f"kryptonite.{sn}"):
+                        self.device_data[sn]["name"] = self._wheres[sensor_data["where_id"]]
+                        if sensor_data.get("description", None):
+                            self.device_data[sn][
+                                "name"
+                            ] += f' ({sensor_data["description"]})'
+                        self.device_data[sn]["name"] += " Temperature"
+                        self.device_data[sn]["temperature"] = sensor_data[
+                            "current_temperature"
+                        ]
+                        if sensor_data.get('description', None):
+                            self.device_data[sn]['name'] += \
+                                f' ({sensor_data["description"]})'
+                        self.device_data[sn]['name'] += ' Temperature'
                         self.device_data[sn]['temperature'] = \
-                            sensor_data['backplate_temperature']
-                    if 'battery_level' in sensor_data:
+                            sensor_data['current_temperature']
                         self.device_data[sn]['battery_level'] = \
                             sensor_data['battery_level']
-
-                    if sensor_data.get('description', None):
-                        self.device_data[sn]['name'] += \
-                            f' ({sensor_data["description"]})'
-                    self.device_data[sn]['name'] += ' Thermostat'
-                    self.device_data[sn]['has_fan'] = \
-                        sensor_data["has_fan"]
-                    self.device_data[sn]['fan'] = \
-                        sensor_data["fan_timer_timeout"]
-                    self.device_data[sn]['current_humidity'] = \
-                        sensor_data["current_humidity"]
-                    self.device_data[sn]['target_humidity'] = \
-                        sensor_data["target_humidity"]
-                    self.device_data[sn]['target_humidity_enabled'] = \
-                        sensor_data["target_humidity_enabled"]
-                    if sensor_data["eco"]["mode"] == 'manual-eco' or \
-                            sensor_data["eco"]["mode"] == 'auto-eco':
-                        self.device_data[sn]['eco'] = True
-                    else:
-                        self.device_data[sn]['eco'] = False
-                # Protect
-                elif bucket["object_key"].startswith(
-                        f"topaz.{sn}"):
-                    self.device_data[sn]['name'] = self._wheres[
-                        sensor_data['where_id']
-                    ]
-                    if sensor_data.get('description', None):
-                        self.device_data[sn]['name'] += \
-                            f' ({sensor_data["description"]})'
-                    self.device_data[sn]['name'] += ' Protect'
-                    self.device_data[sn]['co_status'] = \
-                        self._map_nest_protect_state(sensor_data['co_status'])
-                    self.device_data[sn]['smoke_status'] = \
-                        self._map_nest_protect_state(sensor_data['smoke_status'])
-                    self.device_data[sn]['battery_health_state'] = \
-                        self._map_nest_protect_state(sensor_data['battery_health_state'])
-                # Temperature sensors
-                elif bucket["object_key"].startswith(f"kryptonite.{sn}"):
-                    self.device_data[sn]["name"] = self._wheres[sensor_data["where_id"]]
-                    if sensor_data.get("description", None):
-                        self.device_data[sn][
-                            "name"
-                        ] += f' ({sensor_data["description"]})'
-                    self.device_data[sn]["name"] += " Temperature"
-                    self.device_data[sn]["temperature"] = sensor_data[
-                        "current_temperature"
-                    ]
-                    if sensor_data.get('description', None):
-                        self.device_data[sn]['name'] += \
-                            f' ({sensor_data["description"]})'
-                    self.device_data[sn]['name'] += ' Temperature'
-                    self.device_data[sn]['temperature'] = \
-                        sensor_data['current_temperature']
-                    self.device_data[sn]['battery_level'] = \
-                        sensor_data['battery_level']
+            else if r.status_code != 200 and r.status_code != 502:
+                _LOGGER.error('Update Error: Information for further debugging: ' +
+                                'return code {} '.format(r.status_code) +
+                                'and returned text {}'.format(r.text))
+            else r.status_code == 502:
+                _LOGGER.error('Update Error: 502.')
+            
         except simplejson.errors.JSONDecodeError as e:
-            _LOGGER.error(e)
-            if r.status_code != 200 and r.status_code != 502:
-                _LOGGER.error('Information for further debugging: ' +
-                             'return code {} '.format(r.status_code) +
-                             'and returned text {}'.format(r.text))
-
-            if r.status_code == 502:
-                _LOGGER.error('Error 502, Failed to update, retrying in 30s')
-                sleep(30)
-                self.update()
-        
+            _LOGGER.error('Update Error: JsonDecodeError: ' +
+                          'return code {} '.format(r.status_code) +
+                          'and returned text {}'.format(r.text))
         except requests.exceptions.RequestException as e:
             _LOGGER.error(e)
-            _LOGGER.error('Failed to update, trying again')
-            self.update()
-            
+            _LOGGER.error('Update Request Failed')
         except KeyError:
-            _LOGGER.debug("Failed to update, trying to log in again")
+            _LOGGER.debug("KeyError")
             self.login()
             self.update()
 
