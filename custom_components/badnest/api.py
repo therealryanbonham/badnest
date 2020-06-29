@@ -32,11 +32,11 @@ REQUEST_TIMEOUT = 30
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-_LOGGER.addHandler(handler)
+# handler = logging.StreamHandler(sys.stdout)
+# handler.setLevel(logging.DEBUG)
+# formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+# handler.setFormatter(formatter)
+# _LOGGER.addHandler(handler)
 
 
 class NestAPI:
@@ -593,11 +593,18 @@ class NestAPI:
     def camera_get_image(self, device_id, now):
         if device_id not in self.cameras:
             _LOGGER.error(f"Failed to get camera Image, Invalid Device ID: {device_id}")
-            return
+            return False
+        headers = {
+            "User-Agent": USER_AGENT,
+            "X-Requested-With": "XmlHttpRequest",
+            "Referer": "https://home.nest.com/",
+            "cookie": f"user_token={self._access_token}",
+        }
+        url = f"{self._camera_url}/get_image?uuid={device_id}&cachebuster={now}"
         r = self._call_nest_api(
             method="get", url=url, data=data, headers=headers, is_json=False
         )
         if not r:
             _LOGGER.error("Failed Getting Camera Image")
-            return
+            return False
         return r
