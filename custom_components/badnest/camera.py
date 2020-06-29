@@ -60,7 +60,7 @@ class NestCamera(Camera):
     @property
     def is_on(self):
         """Return true if on."""
-        return self._device.device_data[self._uuid]['is_online']
+        return self._device.device_data[self._uuid]["is_online"]
 
     @property
     def is_recording(self):

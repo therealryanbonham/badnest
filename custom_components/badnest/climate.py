@@ -114,9 +114,8 @@ class NestClimate(ClimateEntity):
         if self.device.device_data[device_id]["has_fan"]:
             self._support_flags = self._support_flags | SUPPORT_FAN_MODE
 
-        if self.device.device_data[device_id]['target_humidity_enabled']:
+        if self.device.device_data[device_id]["target_humidity_enabled"]:
             self._support_flags = self._support_flags | SUPPORT_TARGET_HUMIDITY
-            
 
     @property
     def unique_id(self):
@@ -156,8 +155,8 @@ class NestClimate(ClimateEntity):
     @property
     def target_humidity(self):
         """Return the target humidity."""
-        return self.device.device_data[self.device_id]['target_humidity']
-        
+        return self.device.device_data[self.device_id]["target_humidity"]
+
     @property
     def min_humidity(self):
         """Return the min target humidity."""
@@ -271,14 +270,16 @@ class NestClimate(ClimateEntity):
 
     def set_humidity(self, humidity):
         """Set new target humidity."""
-        humidity = int(round(float(humidity) / ROUND_TARGET_HUMIDITY_TO_NEAREST) * ROUND_TARGET_HUMIDITY_TO_NEAREST)
+        humidity = int(
+            round(float(humidity) / ROUND_TARGET_HUMIDITY_TO_NEAREST)
+            * ROUND_TARGET_HUMIDITY_TO_NEAREST
+        )
         if humidity < NEST_HUMIDITY_MIN:
             humidity = NEST_HUMIDITY_MIN
         if humidity > NEST_HUMIDITY_MAX:
             humidity = NEST_HUMIDITY_MAX
         self.device.thermostat_set_target_humidity(
-            self.device_id,
-            humidity,
+            self.device_id, humidity,
         )
 
     def set_hvac_mode(self, hvac_mode):
