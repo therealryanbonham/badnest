@@ -119,18 +119,19 @@ class NestAPI:
                 _LOGGER.error(
                     "KeyError Failed Calling: {}\nMethod: {}".format(url, method)
                 )
-                self.login()
-                return self._call_nest_api(
-                    self,
-                    method,
-                    url,
-                    headers,
-                    json=json,
-                    params=params,
-                    data=data,
-                    is_retry=True,
-                    is_json=is_json,
-                )
+                if self.login():
+                    if "Authorization" in headers:
+                        headers["Authorization"] = f"Basic {self._access_token}"
+                    return self._call_nest_api(
+                        method,
+                        url,
+                        headers,
+                        json=json,
+                        params=params,
+                        data=data,
+                        is_retry=True,
+                        is_json=is_json,
+                    )
         else:
             # Parse Json
             if r.status_code == 200:
@@ -147,12 +148,34 @@ class NestAPI:
                     )
                 else:
                     return api_response
-            elif r.status_code != 200 and r.status_code != 502:
+            elif r.status_code != 200 and r.status_code not in (502, 401):
                 _LOGGER.error(
                     "Bad API Response: Information for further debugging: return code {} and returned text {} for url {}".format(
                         r.status_code, r.text, url
                     )
                 )
+            elif r.status_code == 401:
+                if is_retry:
+                    _LOGGER.error(
+                        "401 Retry Failed Calling: {}\nMethod: {}".format(url, method)
+                    )
+                else:
+                    _LOGGER.error(
+                        "401 Failed Calling: {}\nMethod: {}".format(url, method)
+                    )
+                    if self.login():
+                        if "Authorization" in headers:
+                            headers["Authorization"] = f"Basic {self._access_token}"
+                        return self._call_nest_api(
+                            method,
+                            url,
+                            headers,
+                            json=json,
+                            params=params,
+                            data=data,
+                            is_retry=True,
+                            is_json=is_json,
+                        )
             else:
                 _LOGGER.error("502 API Response for url {}".format(url))
         return False
@@ -601,9 +624,7 @@ class NestAPI:
             "cookie": f"user_token={self._access_token}",
         }
         url = f"{self._camera_url}/get_image?uuid={device_id}&cachebuster={now}"
-        r = self._call_nest_api(
-            method="get", url=url, headers=headers, is_json=False
-        )
+        r = self._call_nest_api(method="get", url=url, headers=headers, is_json=False)
         if not r:
             _LOGGER.error("Failed Getting Camera Image")
             return False
