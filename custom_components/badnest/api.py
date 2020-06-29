@@ -602,7 +602,7 @@ class NestAPI:
         }
         url = f"{self._camera_url}/get_image?uuid={device_id}&cachebuster={now}"
         r = self._call_nest_api(
-            method="get", url=url, data=data, headers=headers, is_json=False
+            method="get", url=url, headers=headers, is_json=False
         )
         if not r:
             _LOGGER.error("Failed Getting Camera Image")
