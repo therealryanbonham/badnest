@@ -76,7 +76,15 @@ class NestAPI:
         return hasattr(self, name)
 
     def _call_nest_api(
-        self, method, url, headers, json=None, params=None, is_retry=False
+        self,
+        method,
+        url,
+        headers,
+        json=None,
+        params=None,
+        data=None,
+        is_retry=False,
+        is_json=True,
     ):
         try:
             if method == "get":
@@ -85,6 +93,7 @@ class NestAPI:
                     headers=headers,
                     params=params,
                     json=json,
+                    data=data,
                     timeout=REQUEST_TIMEOUT,
                 )
             elif method == "post":
@@ -93,6 +102,7 @@ class NestAPI:
                     headers=headers,
                     params=params,
                     json=json,
+                    data=data,
                     timeout=REQUEST_TIMEOUT,
                 )
             else:
@@ -110,12 +120,25 @@ class NestAPI:
                     "KeyError Failed Calling: {}\nMethod: {}".format(url, method)
                 )
                 self.login()
-                return self._call_nest_api(self, method, url, headers, params, True)
+                return self._call_nest_api(
+                    self,
+                    method,
+                    url,
+                    headers,
+                    json=json,
+                    params=params,
+                    data=data,
+                    is_retry=True,
+                    is_json=is_json,
+                )
         else:
             # Parse Json
             if r.status_code == 200:
                 try:
-                    api_response = r.json()
+                    if is_json:
+                        api_response = r.json()
+                    else:
+                        api_response = r.content
                 except simplejson.errors.JSONDecodeError as e:
                     _LOGGER.error(
                         "API Response: JsonDecodeError: return code {} and returned text {}  for url {}".format(
@@ -410,7 +433,10 @@ class NestAPI:
 
     def thermostat_set_temperature(self, device_id, temp, temp_high=None):
         if device_id not in self.thermostats:
-            return
+            _LOGGER.error(
+                f"Failed Setting Thermostat Temperature, Invalid Device ID: {device_id}"
+            )
+            return False
         url = f"{self._czfe_url}/v5/put"
         headers = {"Authorization": f"Basic {self._access_token}"}
         if temp_high is None:
@@ -443,175 +469,135 @@ class NestAPI:
         return True
 
     def thermostat_set_target_humidity(self, device_id, humidity):
+        _LOGGER.error(
+            f"Failed Setting Thermostat Humidity, Invalid Device ID: {device_id}"
+        )
         if device_id not in self.thermostats:
-            return
-
-        try:
-            self._session.post(
-                f"{self._czfe_url}/v5/put",
-                json={
-                    "objects": [
-                        {
-                            "object_key": f"device.{device_id}",
-                            "op": "MERGE",
-                            "value": {"target_humidity": humidity},
-                        }
-                    ]
-                },
-                headers={"Authorization": f"Basic {self._access_token}"},
-            )
-        except requests.exceptions.RequestException as e:
-            _LOGGER.error(e)
-            _LOGGER.error("Failed to set humidity, trying again")
-            self.thermostat_set_target_humidity(device_id, humidity)
-        except KeyError:
-            _LOGGER.debug("Failed to set humidity, trying to log in again")
-            self.login()
-            self.thermostat_set_target_humidity(device_id, humidity)
+            return False
+        url = f"{self._czfe_url}/v5/put"
+        json = {
+            "objects": [
+                {
+                    "object_key": f"device.{device_id}",
+                    "op": "MERGE",
+                    "value": {"target_humidity": humidity},
+                }
+            ]
+        }
+        headers = {"Authorization": f"Basic {self._access_token}"}
+        r = self._call_nest_api(method="post", url=url, json=json, headers=headers)
+        if not r:
+            _LOGGER.error("Failed Setting Thermostat Humidity")
+            return False
+        return True
 
     def thermostat_set_mode(self, device_id, mode):
         if device_id not in self.thermostats:
-            return
-
-        try:
-            self._session.post(
-                f"{self._czfe_url}/v5/put",
-                json={
-                    "objects": [
-                        {
-                            "object_key": f"shared.{device_id}",
-                            "op": "MERGE",
-                            "value": {"target_temperature_type": mode},
-                        }
-                    ]
-                },
-                headers={"Authorization": f"Basic {self._access_token}"},
+            _LOGGER.error(
+                f"Failed Setting Thermostat Mode, Invalid Device ID: {device_id}"
             )
-        except requests.exceptions.RequestException as e:
-            _LOGGER.error(e)
-            _LOGGER.error("Failed to set mode, trying again")
-            self.thermostat_set_mode(device_id, mode)
-        except KeyError:
-            _LOGGER.debug("Failed to set mode, trying to log in again")
-            self.login()
-            self.thermostat_set_mode(device_id, mode)
+            return False
+        url = f"{self._czfe_url}/v5/put"
+        json = {
+            "objects": [
+                {
+                    "object_key": f"shared.{device_id}",
+                    "op": "MERGE",
+                    "value": {"target_temperature_type": mode},
+                }
+            ]
+        }
+        headers = {"Authorization": f"Basic {self._access_token}"}
+        r = self._call_nest_api(method="post", url=url, json=json, headers=headers)
+        if not r:
+            _LOGGER.error("Failed Setting Thermostat Mode")
+            return False
+        return True
 
     def thermostat_set_fan(self, device_id, date):
         if device_id not in self.thermostats:
-            return
-
-        try:
-            self._session.post(
-                f"{self._czfe_url}/v5/put",
-                json={
-                    "objects": [
-                        {
-                            "object_key": f"device.{device_id}",
-                            "op": "MERGE",
-                            "value": {"fan_timer_timeout": date},
-                        }
-                    ]
-                },
-                headers={"Authorization": f"Basic {self._access_token}"},
+            _LOGGER.error(
+                f"Failed Setting Thermostat Fan, Invalid Device ID: {device_id}"
             )
-        except requests.exceptions.RequestException as e:
-            _LOGGER.error(e)
-            _LOGGER.error("Failed to set fan, trying again")
-            self.thermostat_set_fan(device_id, date)
-        except KeyError:
-            _LOGGER.debug("Failed to set fan, trying to log in again")
-            self.login()
-            self.thermostat_set_fan(device_id, date)
+            return False
+        url = f"{self._czfe_url}/v5/put"
+        json = {
+            "objects": [
+                {
+                    "object_key": f"device.{device_id}",
+                    "op": "MERGE",
+                    "value": {"fan_timer_timeout": date},
+                }
+            ]
+        }
+        headers = {"Authorization": f"Basic {self._access_token}"}
+        r = self._call_nest_api(method="post", url=url, json=json, headers=headers)
+        if not r:
+            _LOGGER.error("Failed Setting Thermostat Mode")
+            return False
+        return True
 
     def thermostat_set_eco_mode(self, device_id, state):
         if device_id not in self.thermostats:
-            return
-
-        try:
-            mode = "manual-eco" if state else "schedule"
-            self._session.post(
-                f"{self._czfe_url}/v5/put",
-                json={
-                    "objects": [
-                        {
-                            "object_key": f"device.{device_id}",
-                            "op": "MERGE",
-                            "value": {"eco": {"mode": mode}},
-                        }
-                    ]
-                },
-                headers={"Authorization": f"Basic {self._access_token}"},
+            _LOGGER.error(
+                f"Failed Setting Thermostat Eco Mode, Invalid Device ID: {device_id}"
             )
-        except requests.exceptions.RequestException as e:
-            _LOGGER.error(e)
-            _LOGGER.error("Failed to set eco, trying again")
-            self.thermostat_set_eco_mode(device_id, state)
-        except KeyError:
-            _LOGGER.debug("Failed to set eco, trying to log in again")
-            self.login()
-            self.thermostat_set_eco_mode(device_id, state)
+            return False
+        mode = "manual-eco" if state else "schedule"
+        url = f"{self._czfe_url}/v5/put"
+        json = {
+            "objects": [
+                {
+                    "object_key": f"device.{device_id}",
+                    "op": "MERGE",
+                    "value": {"eco": {"mode": mode}},
+                }
+            ]
+        }
+        headers = {"Authorization": f"Basic {self._access_token}"}
+        r = self._call_nest_api(method="post", url=url, json=json, headers=headers)
+        if not r:
+            _LOGGER.error("Failed Setting Thermostat Eco Mode")
+            return False
+        return True
 
     def _camera_set_properties(self, device_id, property, value):
         if device_id not in self.cameras:
-            return
-
-        try:
-            headers = {
-                "User-Agent": USER_AGENT,
-                "X-Requested-With": "XmlHttpRequest",
-                "Referer": "https://home.nest.com/",
-                "cookie": f"user_token={self._access_token}",
-            }
-            r = self._session.get(
-                url=f"{CAMERA_WEBAPI_BASE}/api/dropcams.set_properties",
-                data={property: value, "uuid": device_id},
-                headers=headers,
+            _LOGGER.error(
+                f"Failed Setting Camera Properties, Invalid Device ID: {device_id}"
             )
+            return False
 
-            return r.json()["items"]
-        except requests.exceptions.RequestException as e:
-            _LOGGER.error(e)
-            _LOGGER.error("Failed to set camera property, trying again")
-            return self._camera_set_properties(device_id, property, value)
-        except KeyError:
-            _LOGGER.debug("Failed to set camera property, " + "trying to log in again")
-            self.login()
-            return self._camera_set_properties(device_id, property, value)
+        headers = {
+            "User-Agent": USER_AGENT,
+            "X-Requested-With": "XmlHttpRequest",
+            "Referer": "https://home.nest.com/",
+            "cookie": f"user_token={self._access_token}",
+        }
+        url = f"{CAMERA_WEBAPI_BASE}/api/dropcams.set_properties"
+        data = {property: value, "uuid": device_id}
+        r = self._call_nest_api(method="get", url=url, data=data, headers=headers)
+        if not r:
+            _LOGGER.error("Failed Setting Thermostat Eco Mode")
+            return False
+        return r["items"]
 
     def camera_turn_off(self, device_id):
-        if device_id not in self.cameras:
-            return
 
         return self._camera_set_properties(device_id, "streaming.enabled", "false")
 
     def camera_turn_on(self, device_id):
-        if device_id not in self.cameras:
-            return
 
         return self._camera_set_properties(device_id, "streaming.enabled", "true")
 
     def camera_get_image(self, device_id, now):
         if device_id not in self.cameras:
+            _LOGGER.error(f"Failed to get camera Image, Invalid Device ID: {device_id}")
             return
-
-        try:
-            headers = {
-                "User-Agent": USER_AGENT,
-                "X-Requested-With": "XmlHttpRequest",
-                "Referer": "https://home.nest.com/",
-                "cookie": f"user_token={self._access_token}",
-            }
-            r = self._session.get(
-                url=f"{self._camera_url}/get_image?uuid={device_id}"
-                + f"&cachebuster={now}",
-                headers=headers,
-            )
-            return r.content
-        except requests.exceptions.RequestException as e:
-            _LOGGER.error(e)
-            _LOGGER.error("Failed to get camera image, trying again")
-            return self.camera_get_image(device_id, now)
-        except KeyError:
-            _LOGGER.debug("Failed to get camera image, trying to log in again")
-            self.login()
-            return self.camera_get_image(device_id, now)
+        r = self._call_nest_api(
+            method="get", url=url, data=data, headers=headers, is_json=False
+        )
+        if not r:
+            _LOGGER.error("Failed Getting Camera Image")
+            return
+        return r
