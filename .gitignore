@@ -102,3 +102,7 @@ sensor.py
 
 venv/
 .mypy_cache/
+
+
+#Ignore tests as they are currently integration test and not ready for CI
+tests/
