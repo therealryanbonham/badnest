@@ -30,13 +30,7 @@ KNOWN_BUCKET_TYPES = [
 REQUEST_TIMEOUT = 30
 
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.setLevel(logging.DEBUG)
-
-# handler = logging.StreamHandler(sys.stdout)
-# handler.setLevel(logging.DEBUG)
-# formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-# handler.setFormatter(formatter)
-# _LOGGER.addHandler(handler)
+# _LOGGER.setLevel(logging.DEBUG)
 
 
 class NestAPI:
