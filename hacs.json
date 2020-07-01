@@ -1,4 +1,5 @@
 {
     "name": "Bad Nest",
-    "domains": ["climate", "camera", "sensor"]
+    "domains": ["climate", "camera", "sensor"],
+    "homeassistant": "0.97.0"
 }
