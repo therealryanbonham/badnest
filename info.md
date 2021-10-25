@@ -33,6 +33,7 @@ two-character country code, and it should work.
 badnest:
   issue_token: "https://accounts.google.com/o/oauth2/iframerpc....."
   cookie: "OCAK=......"
+  refresh_token: "1//....."
   region: us
 
 climate:
@@ -49,6 +50,8 @@ sensor:
 Google Login support added with many thanks to: chrisjshull from <https://github.com/chrisjshull/homebridge-nest/>
 
 The values of `"issue_token"` and `"cookie"` are specific to your Google Account. To get them, follow these steps (only needs to be done once, as long as you stay logged into your Google Account).
+
+The refresh token method can now be used. Use <https://github.com/chrisjshull/homebridge-nest#using-a-google-account---refresh-token-method> to grab the token. Leave `"issue_token"` and `"cookie"` blank or simply remove them from the config to use `"refresh_token"`. The refresh token method is preferable as it doesnt expire unless you change the password on your google account, unlike the cookie method.
 
 1. Open a Chrome browser tab in Incognito Mode (or clear your cache).
 2. Open Developer Tools (View/Developer/Developer Tools).
