@@ -291,15 +291,21 @@ class NestAPI:
             self.cameras = cameras
         return True
 
-    def _map_nest_protect_state(self, value):
+    def _map_nest_protect_state(self, value, motion = False):
         if value == 0:
-            return "Ok"
+            if motion:
+                return "Detected"
+            else:
+                return "Ok"
         elif value == 1 or value == 2:
-            return "Warning"
+            if motion:
+                return "Clear"
+            else:
+                return "Warning"
         elif value == 3:
             return "Emergency"
         else:
-            return "Unkown"
+            return "Unknown"
 
     def update_camera(self, camera):
         headers = {
@@ -445,7 +451,7 @@ class NestAPI:
                 self.device_data[sn][
                     "battery_health_state"
                 ] = self._map_nest_protect_state(sensor_data["battery_health_state"])
-                self.device_data[sn]["motion_detected"] = self._map_nest_protect_state(sensor_data["auto_away"])
+                self.device_data[sn]["motion_detected"] = self._map_nest_protect_state(sensor_data["auto_away"], motion = True)
             # Temperature sensors
             elif bucket["object_key"].startswith(f"kryptonite.{sn}"):
                 self.device_data[sn]["name"] = self._wheres[sensor_data["where_id"]]
