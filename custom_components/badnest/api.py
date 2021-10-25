@@ -6,6 +6,8 @@ import simplejson
 from time import sleep
 
 API_URL = "https://home.nest.com"
+TOKEN_URL = 'https://oauth2.googleapis.com/token'
+CLIENT_ID = '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com'
 CAMERA_WEBAPI_BASE = "https://webapi.camera.home.nest.com"
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) "
@@ -34,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class NestAPI:
-    def __init__(self, user_id, access_token, issue_token, cookie, region):
+    def __init__(self, user_id, access_token, issue_token, cookie, region, refresh_token = None):
         self.device_data = {}
         self._wheres = {}
         self._user_id = user_id
@@ -43,6 +45,7 @@ class NestAPI:
         self._session.headers.update(
             {"Referer": "https://home.nest.com/", "User-Agent": USER_AGENT,}
         )
+        self._refresh_token = refresh_token
         self._issue_token = issue_token
         self._cookie = cookie
         self._czfe_url = None
@@ -175,24 +178,32 @@ class NestAPI:
         return False
 
     def login(self):
-        status = False
-        if self._issue_token and self._cookie:
-            status = self._login_google(self._issue_token, self._cookie)
-            if not status:
-                _LOGGER.error("Login To Google Failes")
-        else:
-            _LOGGER.error("Issue Token and Cookie Not Set. Unable To Auth To Google")
+        status = self._login_google(self._issue_token, self._cookie, self._refresh_token)
+        if not status:
+            _LOGGER.error("Login To Google Failes")
         return status
 
-    def _login_google(self, issue_token, cookie):
-        headers = {
+    def _login_google(self, issue_token, cookie, refresh_token):
+        if refresh_token is not None:
+            headers = {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": USER_AGENT,
+            }
+            data = {
+            "refresh_token": refresh_token,
+            "client_id": CLIENT_ID,
+            "grant_type": "refresh_token" 
+            }
+            r = self._call_nest_api(method="post", url=TOKEN_URL, headers=headers, data=data)
+        else:
+            headers = {
             "User-Agent": USER_AGENT,
             "Sec-Fetch-Mode": "cors",
             "X-Requested-With": "XmlHttpRequest",
             "Referer": "https://accounts.google.com/o/oauth2/iframe",
             "cookie": cookie,
-        }
-        r = self._call_nest_api(method="get", url=issue_token, headers=headers)
+            }
+            r = self._call_nest_api(method="get", url=issue_token, headers=headers)
         if not r:
             _LOGGER.error("Failed Getting Access Token")
             return False
@@ -434,6 +445,7 @@ class NestAPI:
                 self.device_data[sn][
                     "battery_health_state"
                 ] = self._map_nest_protect_state(sensor_data["battery_health_state"])
+                self.device_data[sn]["motion_detected"] = self._map_nest_protect_state(sensor_data["auto_away"])
             # Temperature sensors
             elif bucket["object_key"].startswith(f"kryptonite.{sn}"):
                 self.device_data[sn]["name"] = self._wheres[sensor_data["where_id"]]
