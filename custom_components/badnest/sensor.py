@@ -95,6 +95,11 @@ class NestProtectSensor(Entity):
         self.device = api
 
     @property
+    def device_state_attributes(self):
+        """Return the state attributes."""
+        return self.device.device_attributes[self.device_id]
+
+    @property
     def unique_id(self):
         """Return an unique ID."""
         return self.device_id + "_" + self._sensor_type
