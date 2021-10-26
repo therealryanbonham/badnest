@@ -7,6 +7,7 @@ from .const import (
     DOMAIN,
     CONF_ISSUE_TOKEN,
     CONF_COOKIE,
+    CONF_REFRESH_TOKEN,
     CONF_USER_ID,
     CONF_ACCESS_TOKEN,
     CONF_REGION,
@@ -21,8 +22,9 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_REGION, default="us"): cv.string,
             },
             {
-                vol.Required(CONF_ISSUE_TOKEN, default=""): cv.string,
-                vol.Required(CONF_COOKIE, default=""): cv.string,
+                vol.Optional(CONF_ISSUE_TOKEN, default=""): cv.string,
+                vol.Optional(CONF_COOKIE, default=""): cv.string,
+                vol.Optional(CONF_REFRESH_TOKEN, default=""): cv.string,
                 vol.Optional(CONF_REGION, default="us"): cv.string,
             },
         )
@@ -37,17 +39,19 @@ def setup(hass, config):
         user_id = config[DOMAIN].get(CONF_USER_ID)
         access_token = config[DOMAIN].get(CONF_ACCESS_TOKEN)
         issue_token = config[DOMAIN].get(CONF_ISSUE_TOKEN)
+        refresh_token = config[DOMAIN].get(CONF_REFRESH_TOKEN)
         cookie = config[DOMAIN].get(CONF_COOKIE)
         region = config[DOMAIN].get(CONF_REGION)
     else:
         email = None
         password = None
         issue_token = None
+        refresh_token = None
         cookie = None
         region = None
 
     hass.data[DOMAIN] = {
-        "api": NestAPI(user_id, access_token, issue_token, cookie, region,),
+        "api": NestAPI(user_id, access_token, issue_token, cookie, region, refresh_token),
     }
 
     return True

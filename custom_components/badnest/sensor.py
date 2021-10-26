@@ -12,7 +12,7 @@ from homeassistant.const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-PROTECT_SENSOR_TYPES = ["co_status", "smoke_status", "battery_health_state"]
+PROTECT_SENSOR_TYPES = ["co_status", "smoke_status", "battery_health_state", "motion_detected"]
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
@@ -93,6 +93,11 @@ class NestProtectSensor(Entity):
         self.device_id = device_id
         self._sensor_type = sensor_type
         self.device = api
+
+    @property
+    def device_state_attributes(self):
+        """Return the state attributes."""
+        return self.device.device_attributes[self.device_id]
 
     @property
     def unique_id(self):
