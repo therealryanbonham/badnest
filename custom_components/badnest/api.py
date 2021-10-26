@@ -38,6 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 class NestAPI:
     def __init__(self, user_id, access_token, issue_token, cookie, region, refresh_token = None):
         self.device_data = {}
+        self.device_attributes = {}
         self._wheres = {}
         self._user_id = user_id
         self._access_token = access_token
@@ -452,6 +453,12 @@ class NestAPI:
                     "battery_health_state"
                 ] = self._map_nest_protect_state(sensor_data["battery_health_state"])
                 self.device_data[sn]["motion_detected"] = self._map_nest_protect_state(sensor_data["auto_away"], motion = True)
+
+                attriblist = {}
+                for attrib in sensor_data:
+                    attriblist[attrib] = sensor_data[attrib]
+                    
+                self.device_attributes[sn] = attriblist
             # Temperature sensors
             elif bucket["object_key"].startswith(f"kryptonite.{sn}"):
                 self.device_data[sn]["name"] = self._wheres[sensor_data["where_id"]]
